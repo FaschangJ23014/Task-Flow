@@ -1,9 +1,11 @@
 ﻿using Kanban.Api.DTOs;
 using Kanban.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kanban.Api.Controller;
+
 
 [Route("api/[controller]")]
 [ApiController]
@@ -16,7 +18,7 @@ public class TeamsController : ControllerBase
         teamService = _teamService;
     }
 
-    [HttpPost("register")]
+    [HttpPost("register")] 
     public IActionResult Register([FromBody] TeamDto dto)
     {
         bool register = teamService.AddTeam(dto.Name, dto.Password);
@@ -25,15 +27,27 @@ public class TeamsController : ControllerBase
         return Ok(new { message = "Team erfolreich erstellt!" });
     }
 
+    [Authorize]
     [HttpPost("login")]
     public IActionResult Login([FromBody]TeamDto dto)
     {
-        var token = teamService.JoinTeam(dto.Name, dto.Password);
-        if (token == null) return BadRequest(new { message = "Falscher Teamname oder Passwort" });
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString))
+        {
+            return Unauthorized("Keine gültige User-ID im Token gefunden.");
+        }
+        int userId = int.Parse(userIdString);
 
-        return Ok(new { token = token });
+        bool success = teamService.JoinTeam(dto.Name, dto.Password, userId);
+        if (!success)
+        {
+            return BadRequest(new { message = "Falscher Teamname, falsches Passwort, du bist bereits im Team oder das Team ist voll (max. 10 Mitglieder)!" });
+        }
+
+        return Ok(new { message = "Erfolgreich dem Team beigetreten!" });
     }
 
+    [Authorize]
     [HttpGet("{id}")]
     public IActionResult GetTeamById(int id)
     {

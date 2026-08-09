@@ -23,7 +23,7 @@ public class KanbanTasksService
         return _data.KanbanTasks.Where(x => x.TeamId == id).ToList();
     }
 
-    public bool AddKanban(CanbanDto dto)
+    public bool AddKanban(CanbanDto dto, int userId)
     {
         Canban kanban = new Canban
         {
@@ -31,7 +31,7 @@ public class KanbanTasksService
             Description = dto.Description,
             Status = dto.Status,
             TeamId = dto.TeamId,
-            UserId = dto.UserId
+            UserId = userId
         };
 
         _data.KanbanTasks.Add(kanban);
@@ -40,9 +40,9 @@ public class KanbanTasksService
     }
 
 
-    public bool UpdateTask(int id, CanbanDto dto)
+    public bool UpdateTask(int id, CanbanDto dto, int userId)
     {
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
+        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id && x.UserId == userId);
         if (task == null) return false;
 
 
@@ -54,9 +54,9 @@ public class KanbanTasksService
         return true;
     }
 
-    public bool DeleteTask(int id)
+    public bool DeleteTask(int id, int userId)
     {
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
+        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id && x.UserId == userId);
         if (task == null) return false;
 
         _data.KanbanTasks.Remove(task);

@@ -20,34 +20,6 @@ public class TeamService
         _data = data;
     }
 
-    public string CreateToken(Team team)
-    {
-        // 1. Claims: Das sind die Informationen, die im Token stecken sollen
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, team.Id.ToString()),
-            new Claim(ClaimTypes.Name, team.Name)
-        };
-
-        // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _config["JWT:SecretKey"] ?? "DiesIstEinStandardKeyDerNurZumTestenDient"));
-
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-        // 3. Token zusammenbauen
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.Now.AddDays(1), // Token ist 1 Tag gültig
-            SigningCredentials = creds
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-
-        return tokenHandler.WriteToken(token);
-    }
 
     public string HashPassword(Team team, string password)
         => _hasher.HashPassword(team, password);
@@ -71,15 +43,33 @@ public class TeamService
         return true;
     }
 
-    public string? JoinTeam(string name, string password)
+    public bool JoinTeam(string name, string password, int userId)
     {
         var team = _data.Teams.FirstOrDefault(x => x.Name == name);
-        if (team == null) return null;
+        if (team == null) return false;
 
         bool verify = VerifyPassword(team, team.JoinPasswordHash, password);
-        if (!verify) return null;
+        if (!verify) return false;
 
-        return CreateToken(team);
+        bool alreadyMember = _data.TeamMembers.Any(tm => tm.UserId == userId && tm.TeamId == team.Id);
+        if (alreadyMember) return false;
+
+        int memberCount = _data.TeamMembers.Count(tm => tm.TeamId == team.Id);
+        if (memberCount >= 10)
+        {
+            return false; // Team ist voll!
+        }
+
+        TeamMember member = new TeamMember
+        {
+            UserId = userId,
+            TeamId = team.Id
+        };
+
+        _data.TeamMembers.Add(member);
+        _data.SaveChanges();
+
+        return true;
     }
 
     public Team? getTeamById(int id)
