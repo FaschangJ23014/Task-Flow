@@ -1,6 +1,8 @@
 ﻿using Kanban.Api.Data;
+using Kanban.Api.Hubs;
 using Kanban.Api.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -13,11 +15,13 @@ public class TeamService
     private readonly PasswordHasher<Team> _hasher = new();
     private readonly IConfiguration _config;
     private readonly DataContext _data;
+    private readonly IHubContext<KanbanHub> _hubContext;
 
-    public TeamService(IConfiguration config, DataContext data)
+    public TeamService(IConfiguration config, DataContext data, IHubContext<KanbanHub> hubContext)
     {
         _config = config;
         _data = data;
+        _hubContext = hubContext;
     }
 
 
@@ -68,6 +72,8 @@ public class TeamService
 
         _data.TeamMembers.Add(member);
         _data.SaveChanges();
+
+        _hubContext.Clients.Group("Team_" + team.Id).SendAsync("UserJoined", userId);
 
         return true;
     }

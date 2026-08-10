@@ -23,11 +23,22 @@ public class AuthService
     public string CreateToken(User user)
     {
         // 1. Claims: Das sind die Informationen, die im Token stecken sollen
+        var teamId = _data.TeamMembers
+        .Where(tm => tm.UserId == user.Id)
+        .Select(tm => tm.TeamId)
+        .FirstOrDefault();
+
         var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Name, user.Username)
+    };
+
+        // Nur wenn der User wirklich in einem Team ist, fügen wir den Claim hinzu
+        if (teamId != 0)
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username)
-        };
+            claims.Add(new Claim("TeamId", teamId.ToString()));
+        }
 
         // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
