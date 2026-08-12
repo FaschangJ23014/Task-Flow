@@ -31,43 +31,40 @@
 
     async function registerUser(username: string, password: string) {
         try {
-            const response = await fetch(`${API_URL}/auth/register`, {
+            await fetch(`${API_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password })
             });
-
-            if (!response.ok) throw new Error("Registration failed");
-            
-            alert("Erfolgreich registriert! Du kannst dich jetzt einloggen.");
         } catch (error) {
             console.error("Error registering:", error);
         }
     }
 </script>
 
-<div class="auth-box">
-    <div class="header-text">
-        <h2>Login</h2>
-        <p>Willkommen zurück! Bitte Daten eingeben.</p>
-    </div>
-    
-    <div class="input-group">
-        <div class="field">
-            <label>Username</label>
-            <input type="text" placeholder="Username" bind:value={Username} />
+    <div class="auth-box">
+        <div class="header-text">
+            <h2>Login</h2>
+            <p>Willkommen zurück! Bitte Daten eingeben.</p>
         </div>
-        <div class="field">
-            <label>Password</label>
-            <input type="password" placeholder="Password" bind:value={Password} />
+        
+        <div class="input-group">
+            <div class="field">
+                <label>Username</label>
+                <input type="text" placeholder="Username" bind:value={Username} />
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" placeholder="Password" bind:value={Password} />
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-register" onclick={() => registerUser(Username, Password)} disabled={isFormValid}>Registrieren</button>
+            <button class="btn-login" onclick={() => loginUser(Username, Password)} disabled={isFormValid}>Einloggen</button>
         </div>
     </div>
 
-    <div class="button-group">
-        <button class="btn-register" onclick={() => registerUser(Username, Password)} disabled={isFormValid}>Registrieren</button>
-        <button class="btn-login" onclick={() => loginUser(Username, Password)} disabled={isFormValid}>Einloggen</button>
-    </div>
-</div>
 
 <style>
     .auth-box {
@@ -161,11 +158,20 @@
     }
     .btn-login:hover { background-color: #047857; }
 
+    .btn-logout {
+        width: 100%;
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .btn-logout:hover { background-color: rgba(239, 68, 68, 0.2); }
+
+    /* Wenn der Button disabled ist: */
     button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        background-color: #27272a !important;
-        color: #71717a !important;
-        box-shadow: none !important;
+        opacity: 0.4;                    /* Macht ihn blass */
+        cursor: not-allowed;             /* Zeigt das Verbots-Zeichen beim Drüberfahren */
+        background-color: #27272a !important; /* Erzwingt eine graue Farbe, egal welcher Button es war */
+        color: #71717a !important;        /* Grauer Text */
+        box-shadow: none !important;      /* Entfernt jeglichen Leuchteffekt */
     }
 </style>
