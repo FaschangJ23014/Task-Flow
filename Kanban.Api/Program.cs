@@ -20,6 +20,17 @@ builder.Services.AddScoped<KanbanTasksService>();
 // 3. SignalR
 builder.Services.AddSignalR();
 
+// --- 1. CORS POLICY HINZUFÜGEN ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSvelte", policy =>
+    {
+        policy.AllowAnyOrigin() // Oder spezifisch: .WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // 4. JWT-Authentifizierung aktivieren 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
