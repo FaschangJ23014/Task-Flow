@@ -57,6 +57,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// ---> HIER MUSS CORS HIN! <---
+app.UseCors("AllowSvelte");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
