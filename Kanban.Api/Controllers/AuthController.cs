@@ -3,7 +3,7 @@ using Kanban.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Kanban.Api.Controller;
+namespace Kanban.Api.Controllers;
 
 [Route("api/auth")]
 [ApiController]

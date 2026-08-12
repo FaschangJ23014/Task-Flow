@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Kanban.Api.Controller;
+namespace Kanban.Api.Controllers;
 
 [Authorize]
 [Route("api/[controller]")]
