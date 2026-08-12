@@ -58,7 +58,7 @@ if (app.Environment.IsDevelopment())
 // 1. CORS MUSS GANZ NACH OBEN (vor HttpsRedirection und Auth)
 app.UseCors("AllowSvelte");
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
