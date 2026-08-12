@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    const API_URL = "http://localhost:5000/api";
+    const API_URL = "http://localhost:5121/api";
 
     let Username: string = $state("");
     let Password: string = $state("");
