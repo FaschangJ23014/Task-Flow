@@ -19,26 +19,36 @@
 
 <style>
     .page-wrapper {
+        width: 100vw;
         min-height: 100vh;
-        background-color: #09090b;
-        color: #f4f4f5;
+        margin: 0;
+        padding: 0;
         display: flex;
         flex-direction: column;
-        font-family: system-ui, -apple-system, sans-serif;
+        justify-content: space-between; /* Verteilt Login oben/Mitte und Footer nach unten */
+        align-items: center;
+        background: linear-gradient(135deg, #020604 0%, #061a14 50%, #09090b 100%);
+        box-sizing: border-box;
     }
 
     .container {
-        flex: 1;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: auto !important; /* Zentriert die Login-Box perfekt vertikal und horizontal */
+        padding: 2rem;
         display: flex;
-        align-items: center;
         justify-content: center;
-        padding: 1rem;
+        align-items: center;
+        box-sizing: border-box;
     }
 
     .app-footer {
+        width: 100%;
+        max-width: 1200px;
         padding: 1.5rem 2rem;
-        border-top: 1px solid #18181b;
-        background-color: #09090b;
+        /* Hartes Schwarz entfernt und durch einen edlen, transparenten Smaragd-Look ersetzt */
+        border-top: 1px solid rgba(5, 150, 105, 0.2);
+        background: transparent;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -46,6 +56,7 @@
         font-size: 0.8rem;
         color: #71717a;
         text-align: center;
+        box-sizing: border-box;
     }
 
     .footer-links {
@@ -56,7 +67,9 @@
     .footer-links a {
         color: #a1a1aa;
         text-decoration: none;
+        transition: color 0.2s ease;
     }
+    
     .footer-links a:hover {
         color: #059669;
     }

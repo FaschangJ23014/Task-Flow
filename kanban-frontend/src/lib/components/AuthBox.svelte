@@ -6,7 +6,10 @@
     let Password: string = $state("");
     let isAuthenticated = $state(false);
 
-    let isFormValid = $derived(Username.trim() == "" || Password.trim() == "");
+    let loginState = $state(true);
+    let registerState = $state(true);
+
+    let isFormValid = $derived(Username.trim() == "" || Password.trim() == "" || Password.length < 8);
 
     async function loginUser(username: string, password: string) {
         try {
@@ -16,16 +19,21 @@
                 body: JSON.stringify({ username, password })
             });
 
-            if (!response.ok) throw new Error("Login failed");
+            if (!response.ok) {
+                loginState = false;
+                return;
+            }
 
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem("token", data.token);
                 isAuthenticated = true;
+                loginState = true;
                 goto("/dashboard");
             } 
         } catch (error) {
             console.error("Error logging in:", error);
+            loginState = false;
         }
     }
 
@@ -36,8 +44,18 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password })
             });
+
+            if (!response.ok) {
+            registerState = false; 
+            return;
+        }
+
+        registerState = true;
+        loginState = true;
+
         } catch (error) {
             console.error("Error registering:", error);
+            registerState = false;
         }
     }
 </script>
@@ -48,14 +66,27 @@
             <p>Willkommen zurück! Bitte Daten eingeben.</p>
         </div>
         
+        {#if !loginState }
+            <div class="error-banner">
+                <span class="error-icon">⚠️</span>
+                <span>Anmeldedaten sind falsch. Bitte versuche es erneut.</span>
+            </div>
+        {:else if !registerState }
+            <div class="error-banner">
+                <span class="error-icon">⚠️</span>
+                <span>Registrierung fehlgeschlagen. Konto existiert bereits.</span>
+            </div>
+        {/if} 
+    
+
         <div class="input-group">
             <div class="field">
                 <label>Username</label>
-                <input type="text" placeholder="Username" bind:value={Username} />
+                <input type="text" placeholder="Username" bind:value={Username} oninput={() => {loginState = true; registerState = true;}} />
             </div>
             <div class="field">
                 <label>Password</label>
-                <input type="password" placeholder="Password" bind:value={Password} />
+                <input type="password" placeholder="Password" bind:value={Password} oninput={() => {loginState = true; registerState = true;}} />
             </div>
         </div>
 
@@ -65,8 +96,25 @@
         </div>
     </div>
 
-
 <style>
+    /* 1. Das macht den gesamten Bildschirm-Hintergrund außerhalb der Box zum geilen Verlauf */
+    :global(html), :global(body) {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: linear-gradient(135deg, #020604 0%, #061a14 50%, #09090b 100%) !important;
+    }
+
+    /* 2. Zentriert die Box perfekt auf dem Bildschirm */
+    :global(body) {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* 3. Deine Login-Box bleibt exakt so wie sie ist (unverändert) */
     .auth-box {
         width: 100%;
         max-width: 28rem;
@@ -158,12 +206,38 @@
     }
     .btn-login:hover { background-color: #047857; }
 
-    /* Wenn der Button disabled ist: */
     button:disabled {
-        opacity: 0.4;                    /* Macht ihn blass */
-        cursor: not-allowed;             /* Zeigt das Verbots-Zeichen beim Drüberfahren */
-        background-color: #27272a !important; /* Erzwingt eine graue Farbe, egal welcher Button es war */
-        color: #71717a !important;        /* Grauer Text */
-        box-shadow: none !important;      /* Entfernt jeglichen Leuchteffekt */
+        opacity: 0.4;
+        cursor: not-allowed;
+        background-color: #27272a !important;
+        color: #71717a !important;
+        box-shadow: none !important;
     }
+
+    .error-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background-color: rgba(239, 68, 68, 0.15);
+        border: 1px solid #ef4444;
+        color: #fca5a5;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        animation: shake 0.3s ease-in-out;
+    }
+
+    .error-icon {
+        font-size: 16px;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+    }
+
+    
 </style>
