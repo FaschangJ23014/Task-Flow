@@ -42,7 +42,7 @@ public class AuthService
 
         // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _config["JWT:SecretKey"] ?? "DiesIstEinStandardKeyDerNurZumTestenDient"));
+            _config["JWT:SecretKey"] ?? "DasIstEinSuperLangerGeheimerSchruenkelDerMindestensVierundsechzigZeichenLangSeinMussDamitSha512NichtMeckert123456!"));
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
