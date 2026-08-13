@@ -158,14 +158,6 @@
     }
     .btn-login:hover { background-color: #047857; }
 
-    .btn-logout {
-        width: 100%;
-        background-color: rgba(239, 68, 68, 0.1);
-        color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-    .btn-logout:hover { background-color: rgba(239, 68, 68, 0.2); }
-
     /* Wenn der Button disabled ist: */
     button:disabled {
         opacity: 0.4;                    /* Macht ihn blass */

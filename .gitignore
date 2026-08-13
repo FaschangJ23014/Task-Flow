@@ -20,3 +20,4 @@ obj/
 */*/bin/
 */*/obj/
 *.user
+Kanban.Api/kanban.db
