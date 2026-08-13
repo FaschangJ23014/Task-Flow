@@ -20,3 +20,12 @@ obj/
 */*/bin/
 */*/obj/
 *.user
+
+# Datenbanken & Logs in allen Ordnern ignorieren
+**/kanban.db
+**/kanban.db-shm
+**/kanban.db-wal
+*.db
+*.sqlite
+*.sqlite3
+*.log
