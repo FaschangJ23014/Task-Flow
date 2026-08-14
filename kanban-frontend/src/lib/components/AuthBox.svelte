@@ -4,10 +4,10 @@
 
     let Username: string = $state("");
     let Password: string = $state("");
-    let isAuthenticated = $state(false);
+    let isAuthenticated: boolean = $state(false);
 
-    let loginState = $state(true);
-    let registerState = $state(true);
+    let loginState: boolean = $state(true);
+    let registerState: boolean = $state(true);
 
     let isFormValid = $derived(Username.trim() == "" || Password.trim() == "" || Password.length < 8);
 
