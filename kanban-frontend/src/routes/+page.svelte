@@ -1,10 +1,17 @@
 <script lang="ts">
-    import AuthBox from "$lib/components/AuthBox.svelte";
+import { onMount } from 'svelte';
+import { goto } from '$app/navigation';
+
+import AuthBox from "$lib/components/AuthBox.svelte";
+
 </script>
 
 <div class="page-wrapper">
     <main class="container">
         <AuthBox />
+
+
+
     </main>
 
     <footer class="app-footer">
