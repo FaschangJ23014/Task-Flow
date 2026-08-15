@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite("Data Source=kanban.db"));
 
-// 2.  Services registrieren
+// 2. Services registrieren
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TeamService>();
 builder.Services.AddScoped<KanbanTasksService>();
@@ -20,12 +20,12 @@ builder.Services.AddScoped<KanbanTasksService>();
 // 3. SignalR
 builder.Services.AddSignalR();
 
-// --- 1. CORS POLICY HINZUFÜGEN ---
+// --- CORS POLICY HINZUFÜGEN ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSvelte", policy =>
     {
-        policy.AllowAnyOrigin() // Oder spezifisch: .WithOrigins("http://localhost:5173")
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -55,10 +55,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// 1. CORS MUSS GANZ NACH OBEN (vor HttpsRedirection und Auth)
+// CORS MUSS GANZ NACH OBEN
 app.UseCors("AllowSvelte");
-
-//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -66,12 +64,20 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<KanbanHub>("/kanbanHub");
 
-// Migrationen beim Start
+// Datenbank-Migrationen beim Start automatisch anwenden
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<DataContext>();
-    context.Database.Migrate();
+    try
+    {
+        var context = services.GetRequiredService<DataContext>();
+        context.Database.Migrate();
+        Console.WriteLine("Datenbank & Migrationen wurden erfolgreich angewendet.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Fehler beim Migrieren der Datenbank: " + ex.Message);
+    }
 }
 
 app.Run();

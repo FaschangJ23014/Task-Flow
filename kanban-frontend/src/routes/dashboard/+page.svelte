@@ -1,8 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    // Importiere jetzt auch create und update!
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask } from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask} from '$lib/services/api';
 
     let isLoading: boolean = $state(true);
     let tasks: Task[] = $state([]);
@@ -10,7 +9,7 @@
     // Popups
     let showTeamPopup: boolean = $state(false);
     let showSettingsPopup: boolean = $state(false);
-    let showCreateTaskPopup: boolean = $state(false); // NEU: Popup für neuen Task
+    let showCreateTaskPopup: boolean = $state(false); 
     
     // Felder für neuen Task
     let newTaskTitle = $state("");
@@ -49,20 +48,14 @@
         isLoading = false;
     });
 
-    // --- NEU: Task erstellen ---
     async function handleCreateTask() {
-        if (!newTaskTitle.trim()) return; // Leere Titel verhindern
+        if (!newTaskTitle.trim()) return; 
         
         try {
-            // Status ist standardmäßig immer 'Todo'
             await createKanbanTask(newTaskTitle, newTaskDesc, 'Todo', currentTeamId);
-            
-            // Popup schließen & Felder leeren
             showCreateTaskPopup = false;
             newTaskTitle = "";
             newTaskDesc = "";
-            
-            // Tasks neu laden, damit der neue Task auftaucht
             await loadTasks();
         } catch (err) {
             console.error(err);
@@ -70,13 +63,9 @@
         }
     }
 
-    // --- NEU: Task verschieben (Pfeile) ---
     async function moveTask(task: Task, newStatus: 'Todo' | 'in-progress' | 'done') {
         try {
-            // 1. API Aufruf an dein .NET Backend
             await updateKanbanTask(task.id, task.title, task.description, newStatus);
-            
-            // 2. Lokales Array sofort updaten, damit die UI direkt reagiert!
             const index = tasks.findIndex(t => t.id === task.id);
             if (index !== -1) {
                 tasks[index].status = newStatus;
@@ -87,7 +76,19 @@
         }
     }
 
-    // Filter für die Spalten
+    // HIER ANGEPASST: Einheitlicher Name für den Aufruf im HTML
+    async function handleDelete(taskId: number) {
+        if (!confirm("Mist du diesen Task wirklich löschen?")) return;
+
+        try {
+            await deleteKanbanTask(taskId);
+            tasks = tasks.filter(t => t.id !== taskId);
+        } catch (error) {
+            console.error(error);
+            alert("Fehler beim Löschen des Tasks");
+        }
+    }
+
     let todoTasks = $derived(tasks.filter(t => t.status === 'Todo'));
     let inProgressTasks = $derived(tasks.filter(t => t.status === 'in-progress'));
     let doneTasks = $derived(tasks.filter(t => t.status === 'done'));
@@ -135,9 +136,8 @@
                                 <h4>{task.title}</h4>
                                 <p>{task.description}</p>
                             </div>
-                            <!-- Pfeil nach rechts -->
                             <div class="task-actions">
-                                <div></div> <!-- Platzhalter links -->
+                                <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">🗑️</button>
                                 <button class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">➔</button>
                             </div>
                         </div>
@@ -155,9 +155,11 @@
                                 <h4>{task.title}</h4>
                                 <p>{task.description}</p>
                             </div>
-                            <!-- Pfeile in beide Richtungen -->
                             <div class="task-actions">
-                                <button class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">⬅</button>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">🗑️</button>
+                                    <button class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">⬅</button>
+                                </div>
                                 <button class="btn-arrow" onclick={() => moveTask(task, 'done')} title="Abschließen">➔</button>
                             </div>
                         </div>
@@ -175,10 +177,9 @@
                                 <h4>{task.title}</h4>
                                 <p>{task.description}</p>
                             </div>
-                            <!-- Pfeil nach links -->
                             <div class="task-actions">
+                                <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">🗑️</button>
                                 <button class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">⬅</button>
-                                <div></div> <!-- Platzhalter rechts -->
                             </div>
                         </div>
                     {:else}
@@ -199,7 +200,6 @@
                 <p>Erledigte Tasks: {doneTasks.length} / {tasks.length}</p>
             </div>
 
-            <!-- NEU: Task Erstellen Button direkt unter der Statistik -->
             <div class="action-section">
                 <button class="btn-primary" style="width: 100%;" onclick={() => showCreateTaskPopup = true}>
                     + Neuen Task erstellen
@@ -239,9 +239,8 @@
         </div>
     {/if}
 
-    <!-- POPUP: Team erstellen / beitreten (Platzhalter) -->
+    <!-- POPUP: Team verwalten -->
     {#if showTeamPopup}
-        <!-- (Code für Team-Popup bleibt gleich...) -->
         <div class="modal-backdrop" onclick={() => showTeamPopup = false}>
             <div class="modal-content" onclick={(e) => e.stopPropagation()}>
                 <h3>Team verwalten</h3>
@@ -263,7 +262,6 @@
 {/if}
 
 <style>
-    /* ... (Die bestehenden globalen & Layout Styles bleiben gleich) ... */
     :global(html), :global(body) { margin: 0; padding: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #020604 0%, #061a14 50%, #09090b 100%) !important; color: #ffffff; font-family: inherit; overflow-x: hidden; }
     .loading-screen { background: #09090b; color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
     .dashboard-layout { display: grid; grid-template-columns: 260px 1fr 280px; height: 100vh; box-sizing: border-box; }
@@ -278,7 +276,6 @@
     .column h3 { margin: 0; font-size: 1rem; color: #a1a1aa; border-bottom: 1px solid #27272a; padding-bottom: 0.5rem; display: flex; justify-content: space-between; }
     .task-count { font-size: 0.8rem; background: #27272a; padding: 0.1rem 0.5rem; border-radius: 1rem; color: #fff; }
 
-    /* NEU: Das Task-Card Design inkl. Pfeile */
     .task-card {
         background-color: #18181b;
         border: 1px solid #27272a;
@@ -312,11 +309,22 @@
         padding: 0 0.5rem;
         transition: color 0.2s;
     }
-    .btn-arrow:hover { color: #10b981; } /* Leuchtend Grün beim Hover */
+    .btn-arrow:hover { color: #10b981; }
+
+    .btn-delete {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    .btn-delete:hover {
+        opacity: 1;
+    }
 
     .empty-text { color: #52525b; font-size: 0.85rem; font-style: italic; text-align: center; margin-top: 1rem; }
 
-    /* Buttons & Popups */
     .btn-primary { background-color: #059669; color: white; border: none; padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; }
     .btn-primary:hover { background-color: #047857; }
     .btn-settings { background-color: #27272a; color: white; border: none; width: 100%; padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; }
@@ -328,7 +336,6 @@
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: #18181b; border: 1px solid #27272a; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; }
     
-    /* Formulare im Modal */
     .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
     .form-group label { font-size: 0.85rem; color: #a1a1aa; }
     .form-group input, .form-group textarea {
@@ -345,4 +352,53 @@
         .kanban-main { padding: 1rem; }
         .kanban-columns { grid-template-columns: 1fr; }
     }
+
+    .task-card {
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: border-color 0.2s;
+    
+    /* WICHTIG: Verhindert, dass Elemente gesprengt werden */
+    min-width: 0; 
+    word-break: break-word; 
+}
+
+.task-content {
+    /* WICHTIG: Erlaubt dem Inhalt, sich anzupassen */
+    min-width: 0; 
+}
+
+.task-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+    
+    /* Verhindert horizontales Überlaufen bei langen Wörtern */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.task-content p {
+    margin: 0;
+    color: #a1a1aa;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    
+    /* Verhindert Überlaufen bei langen Texten */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    
+    /* OPTIONAL: Wenn du den Text auf z.B. maximal 3 Zeilen begrenzen willst 
+       und den Rest abschneiden möchtest (mit ... am Ende): */
+    /*
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    */
+}
 </style>

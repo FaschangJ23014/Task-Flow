@@ -34,7 +34,7 @@ public class KanbanTasksService
             Title = dto.Title,
             Description = dto.Description,
             Status = dto.Status,
-            TeamId = dto.TeamId,
+            TeamId = (dto.TeamId == 0) ? null : dto.TeamId,
             UserId = userId
         };
 
