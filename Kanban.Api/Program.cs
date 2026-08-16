@@ -23,11 +23,12 @@ builder.Services.AddSignalR();
 // --- CORS POLICY HINZUFÜGEN ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSvelte", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Trage hier die URL deines Svelte-Frontends ein (Standard bei Vite ist meist 5173)
+              .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowCredentials(); // Wichtig: Erlaubt Credentials, setzt voraus, dass Origins explizit genannt werden (kein "*")
     });
 });
 
@@ -56,7 +57,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // CORS MUSS GANZ NACH OBEN
-app.UseCors("AllowSvelte");
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

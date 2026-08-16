@@ -29,19 +29,24 @@ public class KanbanTasksService
 
     public bool AddKanban(CanbanDto dto, int userId)
     {
+        int? resolvedTeamId = (dto.TeamId == 0) ? null : dto.TeamId;
+
         Canban kanban = new Canban
         {
             Title = dto.Title,
             Description = dto.Description,
             Status = dto.Status,
-            TeamId = (dto.TeamId == 0) ? null : dto.TeamId,
+            TeamId = resolvedTeamId,
             UserId = userId
         };
 
         _data.KanbanTasks.Add(kanban);
         _data.SaveChanges();
 
-        _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", "Ein neuer Task wurde erstellt!");
+        if (resolvedTeamId.HasValue)
+        {
+            _hubContext.Clients.Group("Team_" + resolvedTeamId.Value).SendAsync("ReceiveTaskUpdate", "Neuer Team-Task!");
+        }
 
         return true;
     }
@@ -59,7 +64,11 @@ public class KanbanTasksService
 
         _data.SaveChanges();
 
-        _hubContext.Clients.Group("Team_" + task.TeamId).SendAsync("TaskUpdated", task);
+        if (task.TeamId.HasValue)
+        {
+            _hubContext.Clients.Group("Team_" + task.TeamId.Value).SendAsync("ReceiveTaskUpdate", "Task aktualisiert!");
+        }
+
         return true;
     }
 
@@ -72,8 +81,11 @@ public class KanbanTasksService
 
         _data.KanbanTasks.Remove(task);
         _data.SaveChanges();
-        _hubContext.Clients.Group("Team_" + teamId).SendAsync("TaskDeleted", id);
 
+        if (teamId.HasValue)
+        {
+            _hubContext.Clients.Group("Team_" + teamId.Value).SendAsync("ReceiveTaskUpdate", "Task gelöscht!");
+        }
         return true;
     }
 

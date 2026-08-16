@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask} from '$lib/services/api';
+    import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
     let tasks: Task[] = $state([]);
@@ -38,15 +39,37 @@
         }
     }
 
-    onMount(async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            goto("/"); 
-            return;
-        }
-        await loadTasks();
-        isLoading = false;
+   onMount(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        goto("/"); 
+        return;
+    }
+    await loadTasks();
+    isLoading = false;
+
+    // --- SIGNALR LIVE VERBINDUNG ---
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("http://localhost:5121/kanbanHub", { 
+            accessTokenFactory: () => token,
+            transport: signalR.HttpTransportType.WebSockets
+        })
+        .withAutomaticReconnect()
+        .build();
+
+    // Hört auf das Signal vom Backend (z.B. "ReceiveTaskUpdate" oder "TaskUpdated")
+    connection.on("ReceiveTaskUpdate", async (message) => {
+        console.log("Live-Update empfangen:", message);
+        await loadTasks(); // Lädt die Tasks automatisch neu, wenn jemand was ändert!
     });
+
+    try {
+        await connection.start();
+        console.log("SignalR verbunden!");
+    } catch (err) {
+        console.error("SignalR Verbindungsfehler: ", err);
+    }
+});
 
     async function handleCreateTask() {
         if (!newTaskTitle.trim()) return; 

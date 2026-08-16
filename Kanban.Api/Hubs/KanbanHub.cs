@@ -7,7 +7,7 @@ public class KanbanHub : Hub
     {
         //hole die TeamId aus dem Token des Users
         var teamId = Context.User?.FindFirst("TeamId")?.Value;
-        if (teamId != null)
+        if (!string.IsNullOrEmpty(teamId) && teamId != "0")
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "Team_" + teamId);
         }
