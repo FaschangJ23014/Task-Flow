@@ -45,24 +45,23 @@
     }
 
     async function handleLeaveTeam() {
-        if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
+    if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
 
-        try {
-            const success = await leaveTeam();
-            if (success) {
-                currentTeamId = 0;
-                teamMembers = [];
-                await loadTasks();
-                alert("Du hast das Team verlassen.");
-                window.location.reload();
-            } else {
-                alert("Fehler beim Verlassen des Teams.");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Netzwerkfehler beim Verlassen des Teams.");
+    try {
+        const success = await leaveTeam();
+        if (success) {
+            alert("Du hast das Team verlassen. Bitte logge dich kurz neu ein, um deinen Workspace zu aktualisieren.");
+            
+            localStorage.removeItem("token");
+            goto("/");
+        } else {
+            alert("Fehler beim Verlassen des Teams.");
         }
+    } catch (err) {
+        console.error(err);
+        alert("Netzwerkfehler beim Verlassen des Teams.");
     }
+}
 
     // Verbesserte Methode zum Auslesen der Team-ID aus verschiedenen Claim-Formaten (.NET kompatibel)
     function getTeamIdFromToken(token: string): number {
