@@ -39,19 +39,20 @@
 
     async function registerUser(username: string, password: string) {
         try {
-            await fetch(`${API_URL}/auth/register`, {
+            const res = await fetch(`${API_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password })
             });
 
-            if (!response.ok) {
-            registerState = false; 
-            return;
-        }
+            if (!res.ok) {
+                registerState = false; 
+                return;
+            }
 
-        registerState = true;
-        loginState = true;
+            registerState = true;
+            loginState = true;
+            alert("Registrierung erfolgreich! Du kannst dich jetzt einloggen.");
 
         } catch (error) {
             console.error("Error registering:", error);

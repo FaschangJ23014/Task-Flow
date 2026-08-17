@@ -8,7 +8,6 @@ namespace Kanban.Api.Services;
 
 public class KanbanTasksService
 {
-
     private readonly DataContext _data;
     private readonly IHubContext<KanbanHub> _hubContext;
 
@@ -17,6 +16,7 @@ public class KanbanTasksService
         _data = data;
         _hubContext = hubContext;
     }
+
     public List<Canban> GetKanbanByUser(int id)
     {
         return _data.KanbanTasks.Where(x => x.UserId == id).ToList();
@@ -51,12 +51,18 @@ public class KanbanTasksService
         return true;
     }
 
-
     public bool UpdateTask(int id, CanbanDto dto, int userId)
     {
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id && x.UserId == userId);
+        // 1. Task anhand der ID suchen (ohne strikten UserId-Check)
+        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
         if (task == null) return false;
 
+        // 2. Prüfen: Entweder ist es mein Task ODER ich bin im selben Team
+        bool isOwner = task.UserId == userId;
+        bool isTeamMember = task.TeamId.HasValue && 
+                            _data.TeamMembers.Any(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
+
+        if (!isOwner && !isTeamMember) return false;
 
         task.Title = dto.Title;
         task.Description = dto.Description;
@@ -74,8 +80,16 @@ public class KanbanTasksService
 
     public bool DeleteTask(int id, int userId)
     {
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id && x.UserId == userId);
+        // 1. Task anhand der ID suchen (ohne strikten UserId-Check)
+        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
         if (task == null) return false;
+
+        // 2. Prüfen: Entweder ist es mein Task ODER ich bin im selben Team
+        bool isOwner = task.UserId == userId;
+        bool isTeamMember = task.TeamId.HasValue && 
+                            _data.TeamMembers.Any(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
+
+        if (!isOwner && !isTeamMember) return false;
 
         int? teamId = task.TeamId;
 
@@ -88,7 +102,4 @@ public class KanbanTasksService
         }
         return true;
     }
-
-
-
 }

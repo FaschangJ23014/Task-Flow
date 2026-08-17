@@ -13,6 +13,7 @@ public class TeamsController : ControllerBase
 {
     private readonly TeamService teamService;
     private readonly AuthService authService; //Für die TeamToken
+   
 
     public TeamsController(TeamService _teamService, AuthService _authService)
     {

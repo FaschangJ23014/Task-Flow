@@ -87,6 +87,7 @@
 
     currentTeamId = getTeamIdFromToken(token);
     await loadTasks();
+    await loadTeamMembersList();
     isLoading = false;
 
     // --- SIGNALR LIVE VERBINDUNG ---
@@ -104,7 +105,7 @@
         await loadTasks(); // Lädt die Tasks automatisch neu, wenn jemand was ändert!
     });
 
-    connection.on("MemberJoined", async (message) => {
+    connection.on("UserJoined", async (message) => {
     console.log("Neues Mitglied:", message);
     await loadTeamMembersList(); // Lädt die Liste der Mitglieder neu
 });
@@ -149,6 +150,7 @@
                 alert("Team erfolgreich beigetreten!");
                 await loadTasks();
                 await loadTeamMembersList();
+                window.location.reload(); 
             }
             showTeamPopup = false;
             teamName = "";
