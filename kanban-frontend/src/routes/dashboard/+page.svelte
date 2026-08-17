@@ -23,6 +23,8 @@
     let teamName = $state("");
     let teamPassword = $state("");
 
+    let teamMembers = $state<string[]>([]);
+
     export interface Task {
         id: number;
         title: string;
@@ -40,6 +42,18 @@
             }
         } catch (error) {
             console.error("Fehler beim Laden der Tasks:", error);
+        }
+    }
+
+
+    // Diese Funktion rufst du auf, wenn du Tasks lädst oder ein Team beitrittst
+    async function loadTeamMembers() {
+        if (currentTeamId > 0) {
+            // Hier API-Call: teamMembers = await getTeamMembers(currentTeamId);
+            // Beispiel-Test-Daten:
+            teamMembers = ["Jakob (Admin)", "Sarah", "Max"]; 
+        } else {
+            teamMembers = [];
         }
     }
 
@@ -66,6 +80,11 @@
         console.log("Live-Update empfangen:", message);
         await loadTasks(); // Lädt die Tasks automatisch neu, wenn jemand was ändert!
     });
+
+    connection.on("MemberJoined", async (message) => {
+    console.log("Neues Mitglied:", message);
+    await loadTeamMembers(); // Lädt die Liste der Mitglieder neu
+});
 
     try {
         await connection.start();
@@ -257,7 +276,11 @@
             <div class="team-members">
                 <h4>Team Mitglieder</h4>
                 <ul>
-                    <li>👤 Jakob (Admin)</li>
+                    {#each teamMembers as member}
+                        <li>👤 {member}</li>
+                    {:else}
+                        <li style="color: #52525b; font-size: 0.8rem;">Keine weiteren Mitglieder</li>
+                    {/each}
                 </ul>
             </div>
         </aside>
