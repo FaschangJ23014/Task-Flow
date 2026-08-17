@@ -232,7 +232,7 @@
         <!-- 1. LINKE SIDEBAR -->
         <aside class="sidebar-left">
             <div class="sidebar-brand">
-                <span class="brand-icon">💎</span>
+                <span class="brand-icon"></span>
                 <h2>FlowBoard</h2>
             </div>
 
