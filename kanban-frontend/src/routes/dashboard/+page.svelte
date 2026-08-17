@@ -288,14 +288,39 @@
     {/if}
 
     <!-- POPUP: Team verwalten -->
+    <!-- POPUP: Team erstellen / beitreten -->
     {#if showTeamPopup}
         <div class="modal-backdrop" onclick={() => showTeamPopup = false}>
             <div class="modal-content" onclick={(e) => e.stopPropagation()}>
                 <h3>Team verwalten</h3>
-                <button class="btn-close" onclick={() => showTeamPopup = false}>Schließen</button>
+                
+                <div class="form-group">
+                    <label for="teamName">Team Name</label>
+                    <input id="teamName" type="text" bind:value={teamName} placeholder="z.B. Entwickler-Team" />
+                </div>
+
+                <div class="form-group">
+                    <label for="teamPass">Passwort</label>
+                    <input id="teamPass" type="password" bind:value={teamPassword} placeholder="Geheimes Passwort..." />
+                </div>
+
+                <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
+                    <button class="btn-primary" onclick={() => handleTeamAction('create')}>
+                        Team erstellen
+                    </button>
+                    <button class="btn-secondary" onclick={() => handleTeamAction('join')} style="background: #3f3f46;">
+                        Team beitreten
+                    </button>
+                    <button class="btn-close" onclick={() => showTeamPopup = false} style="margin-top: 1rem;">
+                        Abbrechen
+                    </button>
+                </div>
             </div>
         </div>
     {/if}
+
+
+
 
     <!-- POPUP: Settings & Logout -->
     {#if showSettingsPopup}
@@ -448,5 +473,47 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     */
+}
+
+
+/* Basis-Button-Design (falls noch nicht vorhanden) */
+button {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+/* Dein vorhandener btn-primary (wahrscheinlich grün oder blau) */
+.btn-primary {
+    background: #0d9d0d; /* Blau-Ton */
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+/* NEU: Das Design für btn-secondary */
+.btn-secondary {
+    background: #64748b; /* Ein neutrales Schiefergrau */
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+}
+
+/* Design für den Schließen-Button */
+.btn-close {
+    background: transparent;
+    color: #ef4444; /* Rot für Abbrechen */
+    border: 1px solid #ef4444;
+}
+
+.btn-close:hover {
+    background: #fee2e2;
 }
 </style>
