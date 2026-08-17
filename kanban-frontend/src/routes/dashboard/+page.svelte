@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask} from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam} from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
@@ -18,6 +18,10 @@
 
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
+
+    //Felder für Team erstellen/beitreten
+    let teamName = $state("");
+    let teamPassword = $state("");
 
     export interface Task {
         id: number;
@@ -83,6 +87,27 @@
         } catch (err) {
             console.error(err);
             alert("Fehler beim Erstellen des Tasks.");
+        }
+    }
+
+    //Team erstellen oder beitreten
+    async function handleTeamAction(action: 'create' | 'join') {
+        if (!teamName.trim() || !teamPassword.trim()) return;
+
+        try {
+            if (action === 'create') {
+                await registerTeam(teamName, teamPassword);
+                alert("Team erfolgreich erstellt!");
+            } else if (action === 'join') {
+                await joinTeam(teamName, teamPassword);
+                alert("Team erfolgreich beigetreten!");
+            }
+            showTeamPopup = false;
+            teamName = "";
+            teamPassword = "";
+        } catch (err) {
+            console.error(err);
+            alert(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'} des Teams.`);
         }
     }
 
