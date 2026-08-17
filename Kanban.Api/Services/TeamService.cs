@@ -85,4 +85,27 @@ public class TeamService
 
         return team;
     }
+
+    public List<User> GetTeamMembers(int teamId)
+    {
+        return _data.TeamMembers
+             .Where(x => x.TeamId == teamId)
+             .Select(x => x.User)
+             .ToList();
+    }
+
+    public bool LeaveTeam(int userId)
+{
+    var teamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == userId);
+    if (teamMember == null) return false;
+
+    int teamId = teamMember.TeamId;
+
+    _data.TeamMembers.Remove(teamMember);
+    _data.SaveChanges();
+
+    _hubContext.Clients.Group("Team_" + teamId).SendAsync("UserJoined", userId);
+
+    return true;
+}
 }

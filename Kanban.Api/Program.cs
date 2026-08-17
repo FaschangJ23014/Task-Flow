@@ -18,7 +18,12 @@ builder.Services.AddScoped<TeamService>();
 builder.Services.AddScoped<KanbanTasksService>();
 
 // 3. SignalR
-builder.Services.AddSignalR();
+// 3. SignalR mit Ping- und Timeout-Einstellungen
+builder.Services.AddSignalR(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
 
 // --- CORS POLICY HINZUFÜGEN ---
 builder.Services.AddCors(options =>
@@ -43,6 +48,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 builder.Configuration["JWT:SecretKey"] ?? "DiesIstEinStandardKeyDerNurZurTestenDient")),
             ValidateIssuer = false,
             ValidateAudience = false
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/kanbanHub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 

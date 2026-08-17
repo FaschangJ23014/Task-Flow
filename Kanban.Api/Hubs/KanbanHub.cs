@@ -10,6 +10,7 @@ public class KanbanHub : Hub
         if (!string.IsNullOrEmpty(teamId) && teamId != "0")
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "Team_" + teamId);
+            Console.WriteLine($"Client {Context.ConnectionId} wurde Gruppe Team_{teamId} hinzugefügt.");
         }
         await base.OnConnectedAsync();
     }
