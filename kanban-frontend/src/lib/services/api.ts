@@ -97,3 +97,12 @@ export async function getTeamMembers(teamId: number) {
     if (!res.ok) throw new Error("Fehler beim Laden der Team-Mitglieder");
     return res.json();
 }
+
+//Team verlassen
+export async function leaveTeam(): Promise<boolean> {
+    const res = await fetch(`${API_URL}/teams/leave`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+    });
+    return res.ok;
+}

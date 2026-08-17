@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers} from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam} from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
@@ -45,6 +45,34 @@
         }
     }
 
+    //Fürs Team verlassen
+    async function handleLeaveTeam() {
+        if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
+
+        try {
+            const success = await leaveTeam();
+            if (success) {
+                // 1. Lokalen State für das Team zurücksetzen
+                currentTeamId = 0;
+                
+                // 2. Team-spezifische Daten löschen
+                teamMembers = [];
+                
+                // 3. Sofort die privaten Tasks laden
+                await loadTasks();
+                
+                alert("Du hast das Team verlassen.");
+                
+                // Optional: Seite einmal kurz neu laden oder einfach nur den Status im UI aktualisieren
+                // Da wir loadTasks() aufrufen, sollte das Board automatisch auf "Privat" springen!
+            } else {
+                alert("Fehler beim Verlassen des Teams.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Netzwerkfehler beim Verlassen des Teams.");
+        }
+    }
 
     // JWT-Token auslesen, um die TeamId zu ermitteln
     function getTeamIdFromToken(token: string): number {
@@ -313,6 +341,12 @@
                         <li style="color: #52525b; font-size: 0.8rem;">Keine weiteren Mitglieder</li>
                     {/each}
                 </ul>
+
+                {#if currentTeamId > 0}
+                    <button class="btn-leave-team" onclick={handleLeaveTeam}>
+                        Team verlassen
+                    </button>
+                {/if}
             </div>
         </aside>
     </div>
@@ -569,5 +603,22 @@ button {
 
 .btn-close:hover {
     background: #fee2e2;
+}
+
+.btn-leave-team {
+    background-color: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-leave-team:hover {
+    background-color: rgba(239, 68, 68, 0.3);
 }
 </style>

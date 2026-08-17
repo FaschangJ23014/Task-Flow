@@ -79,4 +79,18 @@ public class TeamsController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("leave")]
+    public IActionResult LeaveTeam()
+    {
+    var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+
+    int userId = int.Parse(userIdString);
+    bool success = teamService.LeaveTeam(userId);
+
+    if (!success) return BadRequest("Du bist in keinem Team oder ein Fehler ist aufgetreten.");
+
+    return Ok(new { message = "Team erfolgreich verlassen" });
+    }
 }
