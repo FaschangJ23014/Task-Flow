@@ -85,4 +85,12 @@ public class TeamService
 
         return team;
     }
+
+    public List<User> GetTeamMembers(int teamId)
+    {
+        return _data.TeamMembers
+             .Where(x => x.TeamId == teamId)
+             .Select(x => x.User)
+             .ToList();
+    }
 }

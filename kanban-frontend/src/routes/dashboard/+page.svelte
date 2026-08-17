@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam} from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers} from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
@@ -46,12 +46,33 @@
     }
 
 
+    // JWT-Token auslesen, um die TeamId zu ermitteln
+    function getTeamIdFromToken(token: string): number {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const payload = JSON.parse(jsonPayload);
+            return payload.TeamId ? parseInt(payload.TeamId) : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+
     // Diese Funktion rufst du auf, wenn du Tasks lädst oder ein Team beitrittst
-    async function loadTeamMembers() {
+    async function loadTeamMembersList() {
         if (currentTeamId > 0) {
-            // Hier API-Call: teamMembers = await getTeamMembers(currentTeamId);
-            // Beispiel-Test-Daten:
-            teamMembers = ["Jakob (Admin)", "Sarah", "Max"]; 
+            try {
+                const members = await getTeamMembers(currentTeamId);
+                // Mappt die API-Antwort [{id, username}, ...] zu einem reinen String-Array der Usernamen
+                teamMembers = members.map((m: any) => m.username);
+            } catch (err) {
+                console.error("Fehler beim Laden der Team-Mitglieder:", err);
+                teamMembers = [];
+            }
         } else {
             teamMembers = [];
         }
@@ -63,6 +84,8 @@
         goto("/"); 
         return;
     }
+
+    currentTeamId = getTeamIdFromToken(token);
     await loadTasks();
     isLoading = false;
 
@@ -83,7 +106,7 @@
 
     connection.on("MemberJoined", async (message) => {
     console.log("Neues Mitglied:", message);
-    await loadTeamMembers(); // Lädt die Liste der Mitglieder neu
+    await loadTeamMembersList(); // Lädt die Liste der Mitglieder neu
 });
 
     try {
@@ -118,8 +141,14 @@
                 await registerTeam(teamName, teamPassword);
                 alert("Team erfolgreich erstellt!");
             } else if (action === 'join') {
-                await joinTeam(teamName, teamPassword);
+                const newToken = await joinTeam(teamName, teamPassword); // Hier kommt das Token zurück
+                if (newToken) {
+                    localStorage.setItem("token", newToken); // <--- WICHTIG: Neues Token speichern!
+                    currentTeamId = getTeamIdFromToken(newToken); // TeamId aktualisieren
+                }
                 alert("Team erfolgreich beigetreten!");
+                await loadTasks();
+                await loadTeamMembersList();
             }
             showTeamPopup = false;
             teamName = "";

@@ -67,7 +67,7 @@ export async function deleteKanbanTask(id: number) {
 export async function registerTeam(name: string, password: string) {
     const res = await fetch(`${API_URL}/teams/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // Falls [Authorize] aktiv ist, ansonsten Headers weglassen
         body: JSON.stringify({ name, password }) // Entspricht TeamDto
     });
     const data = await res.json();
@@ -75,7 +75,7 @@ export async function registerTeam(name: string, password: string) {
     return data;
 }
 
-// Team beitreten (Login in ein Team)
+// Team beitreten (Login in ein Team) - Gibt direkt das neue JWT-Token mit der TeamId zurück!
 export async function joinTeam(name: string, password: string) {
     const res = await fetch(`${API_URL}/teams/login`, {
         method: "POST",
@@ -84,14 +84,16 @@ export async function joinTeam(name: string, password: string) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Fehler beim Beitreten des Teams");
-    return data;
+    
+    // Gibt das Objekt zurück (enthält data.token und data.message)
+    return data.token; 
 }
 
-// Team-Details per ID laden
-export async function getTeamById(teamId: number) {
-    const res = await fetch(`${API_URL}/teams/${teamId}`, {
+// Team-Mitglieder für eine bestimmte TeamId abrufen
+export async function getTeamMembers(teamId: number) {
+    const res = await fetch(`${API_URL}/teams/members/${teamId}`, {
         headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error("Team nicht gefunden");
+    if (!res.ok) throw new Error("Fehler beim Laden der Team-Mitglieder");
     return res.json();
 }

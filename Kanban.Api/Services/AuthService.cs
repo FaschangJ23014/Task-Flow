@@ -92,4 +92,9 @@ public class AuthService
 
         return CreateToken(user);
     }
+
+    public User? GetUserById(int userId)
+    {
+        return _data.Users.FirstOrDefault(x => x.Id == userId);
+    }
 }
