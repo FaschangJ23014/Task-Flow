@@ -97,4 +97,16 @@ public class AuthService
     {
         return _data.Users.FirstOrDefault(x => x.Id == userId);
     }
+
+    public bool UpdateUsername(int userId, string newUsername)
+    {
+        var user = _data.Users.FirstOrDefault(x => x.Id == userId);
+        if (user == null) return false;
+     
+        if(_data.Users.Any(x => x.Username == newUsername)) return false;
+
+        user.Username = newUsername;
+        _data.SaveChanges();
+        return true;
+    }
 }
