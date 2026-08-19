@@ -103,9 +103,30 @@ public class AuthService
         var user = _data.Users.FirstOrDefault(x => x.Id == userId);
         if (user == null) return false;
      
+        if(string.IsNullOrWhiteSpace(newUsername)) return false;
         if(_data.Users.Any(x => x.Username == newUsername)) return false;
 
         user.Username = newUsername;
+        
+        try
+        {
+            _data.SaveChanges();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool UpdatePassword(int userId, string newPassword, string oldPassword)
+    {
+        var user = _data.Users.FirstOrDefault(x => x.Id == userId);
+        if(user == null) return false;
+
+        if(!VerifyPassword(user, user.PasswordHash, oldPassword)) return false;
+
+        user.PasswordHash = HashPassword(user, newPassword);
         _data.SaveChanges();
         return true;
     }
