@@ -106,3 +106,24 @@ export async function leaveTeam(): Promise<boolean> {
     });
     return res.ok;
 }
+
+//Change Password/Username 
+export async function changePassword(oldPassword: string, newPassword: string) {
+    const res = await fetch(`${API_URL}/auth/changepassword`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ oldPassword, newPassword })
+    });
+    if (!res.ok) throw new Error("Fehler beim Ändern des Passworts");
+    return res.json();
+}
+
+export async function changeUsername(newUsername: string) {
+    const res = await fetch(`${API_URL}/auth/changeusername`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ newUsername })
+    });
+    if (!res.ok) throw new Error("Fehler beim Ändern des Usernames");
+    return res.json();
+}

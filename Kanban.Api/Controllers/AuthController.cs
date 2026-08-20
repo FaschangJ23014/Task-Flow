@@ -2,6 +2,7 @@
 using Kanban.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Kanban.Api.Controllers;
 
@@ -35,6 +36,7 @@ public class AuthController : ControllerBase
         return Ok(new { Token = token });
     }
 
+    [Authorize]
     [HttpPut("changepassword")]
     public IActionResult ChangePassword(ChangePasswordDto dto)
     {
@@ -51,6 +53,7 @@ public class AuthController : ControllerBase
         return Ok("Passwort erfolgreich geändert.");
     }
 
+    [Authorize]
     [HttpPut("changeusername")]
     public IActionResult ChangeUsername(ChangeUsernameDto dto)
     {
