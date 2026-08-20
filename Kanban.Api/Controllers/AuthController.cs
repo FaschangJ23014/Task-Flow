@@ -35,5 +35,36 @@ public class AuthController : ControllerBase
         return Ok(new { Token = token });
     }
 
+    [HttpPut("changepassword")]
+    public IActionResult ChangePassword(ChangePasswordDto dto)
+    {
+        var newPassword = dto.NewPassword;
+        var oldPassword = dto.OldPassword;
+        if (string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(oldPassword)) return BadRequest("Passwörter dürfen nicht leer sein.");
+    
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+        int userId = int.Parse(userIdString);
+
+        bool success = authService.UpdatePassword(userId, newPassword, oldPassword);
+        if (!success) return BadRequest("Altes Passwort ist falsch.");
+        return Ok("Passwort erfolgreich geändert.");
+    }
+
+    [HttpPut("changeusername")]
+    public IActionResult ChangeUsername(ChangeUsernameDto dto)
+    {
+        var newUsername = dto.NewUsername;
+        if (string.IsNullOrEmpty(newUsername)) return BadRequest("Neuer Username darf nicht leer sein.");
+    
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+        int userId = int.Parse(userIdString);
+
+        bool success = authService.UpdateUsername(userId, newUsername);
+        if (!success) return BadRequest("Username existiert bereits.");
+        return Ok("Username erfolgreich geändert.");
+    }
+
 
 }
