@@ -325,7 +325,7 @@ async function handleChangePassword() {
                             </div>
                             <div class="task-actions">
                                 <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">🗑️</span>
+                                    <span class="action-icon">X</span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">
                                     <span>In Bearbeitung</span>
@@ -350,7 +350,7 @@ async function handleChangePassword() {
                             <div class="task-actions">
                                 <div class="task-actions-left">
                                     <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                        <span class="action-icon">🗑️</span>
+                                        <span class="action-icon">X</span>
                                     </button>
                                     <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">
                                         <span class="action-arrow-icon">←</span>
@@ -378,7 +378,7 @@ async function handleChangePassword() {
                             </div>
                             <div class="task-actions">
                                 <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">🗑️</span>
+                                    <span class="action-icon">X</span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">
                                     <span class="action-arrow-icon">←</span>
