@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Kanban.Api.Controllers;
 
-[Route("api/auth")]
+[Route("api/[controller]")]
 [ApiController]
 public class AuthController : ControllerBase
 {

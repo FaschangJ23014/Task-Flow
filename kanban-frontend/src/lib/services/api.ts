@@ -115,7 +115,7 @@ export async function changePassword(oldPassword: string, newPassword: string) {
         body: JSON.stringify({ oldPassword, newPassword })
     });
     if (!res.ok) throw new Error("Fehler beim Ändern des Passworts");
-    return res.json();
+    return res.text();
 }
 
 export async function changeUsername(newUsername: string) {
@@ -125,5 +125,5 @@ export async function changeUsername(newUsername: string) {
         body: JSON.stringify({ newUsername })
     });
     if (!res.ok) throw new Error("Fehler beim Ändern des Usernames");
-    return res.json();
+    return res.text();
 }

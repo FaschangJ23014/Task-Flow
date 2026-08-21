@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam} from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam, changePassword, changeUsername } from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
@@ -13,24 +13,62 @@
     let showCreateTaskPopup: boolean = $state(false); 
     
     // Felder für neuen Task
-    let newTaskTitle = $state("");
-    let newTaskDesc = $state("");
+    let newTaskTitle: string = $state("");
+    let newTaskDesc: string = $state("");
+
+    let newPassword: string = $state("");
+    let oldPassword: string = $state("");
+    let newUsername: string = $state("");
 
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
 
     // Felder für Team erstellen/beitreten
-    let teamName = $state("");
-    let teamPassword = $state("");
+    let teamName: string = $state("");
+    let teamPassword: string = $state("");
 
-    let teamMembers = $state<string[]>([]);
+    let teamMembers: string[] = $state([]);
 
-    export interface Task {
+     interface Task {
         id: number;
         title: string;
         description: string;
         status: 'Todo' | 'in-progress' | 'done';
     }
+
+
+    async function handleChangeUsername() {
+    if (!newUsername.trim()) {
+        alert("Bitte gib einen neuen Benutzernamen ein.");
+        return;
+    }
+    try {
+        const message = await changeUsername(newUsername);
+        alert(message); // Zeigt die Erfolgsmeldung vom Backend
+        newUsername = "";
+        showSettingsPopup = false;
+    } catch (err) {
+        console.error(err);
+        alert("Fehler beim Ändern des Benutzernamens.");
+    }
+}
+
+async function handleChangePassword() {
+    if (!oldPassword || !newPassword) {
+        alert("Bitte fülle alle Passwort-Felder aus.");
+        return;
+    }
+    try {
+        const message = await changePassword(oldPassword, newPassword);
+        alert(message); // Zeigt die Erfolgsmeldung vom Backend
+        oldPassword = "";
+        newPassword = "";
+        showSettingsPopup = false;
+    } catch (err) {
+        console.error(err);
+        alert("Fehler beim Ändern des Passworts (Altes Passwort korrekt?).");
+    }
+}
 
     async function loadTasks() {
         try {
@@ -45,25 +83,23 @@
     }
 
     async function handleLeaveTeam() {
-    if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
+        if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
 
-    try {
-        const success = await leaveTeam();
-        if (success) {
-            alert("Du hast das Team verlassen. Bitte logge dich kurz neu ein, um deinen Workspace zu aktualisieren.");
-            
-            localStorage.removeItem("token");
-            goto("/");
-        } else {
-            alert("Fehler beim Verlassen des Teams.");
+        try {
+            const success = await leaveTeam();
+            if (success) {
+                alert("Du hast das Team verlassen. Bitte logge dich kurz neu ein, um deinen Workspace zu aktualisieren.");
+                localStorage.removeItem("token");
+                goto("/");
+            } else {
+                alert("Fehler beim Verlassen des Teams.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Netzwerkfehler beim Verlassen des Teams.");
         }
-    } catch (err) {
-        console.error(err);
-        alert("Netzwerkfehler beim Verlassen des Teams.");
     }
-}
 
-    // Verbesserte Methode zum Auslesen der Team-ID aus verschiedenen Claim-Formaten (.NET kompatibel)
     function getTeamIdFromToken(token: string): number {
         try {
             const base64Url = token.split('.')[1];
@@ -73,7 +109,6 @@
             }).join(''));
             const payload = JSON.parse(jsonPayload);
             
-            // Suche flexibel nach allen gängigen Schreibweisen im Payload
             for (const key of Object.keys(payload)) {
                 if (key.toLowerCase().includes('teamid')) {
                     const val = parseInt(payload[key]);
@@ -237,12 +272,12 @@
 
             <div class="nav-section">
                 <span class="sidebar-label">Navigation</span>
-                <button class="nav-item active">📊 Projekt Board</button>
+                <button type="button" class="nav-item active">📊 Projekt Board</button>
             </div>
 
             <div class="nav-section">
                 <span class="sidebar-label">Workspace & Teams</span>
-                <button class="btn-secondary" onclick={() => showTeamPopup = true}>👥 Team verwalten</button>
+                <button type="button" class="btn-secondary" onclick={() => showTeamPopup = true}>👥 Team verwalten</button>
                 
                 <div class="team-status-box">
                     {#if currentTeamId > 0}
@@ -289,10 +324,10 @@
                                 <p>{task.description}</p>
                             </div>
                             <div class="task-actions">
-                                <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">🗑️</span>
+                                <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                    <span class="action-icon">X</span>
                                 </button>
-                                <button class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">
+                                <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">
                                     <span>In Bearbeitung</span>
                                     <span class="action-arrow-icon">→</span>
                                 </button>
@@ -314,14 +349,14 @@
                             </div>
                             <div class="task-actions">
                                 <div class="task-actions-left">
-                                    <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                        <span class="action-icon">🗑️</span>
+                                    <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                        <span class="action-icon">X</span>
                                     </button>
-                                    <button class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">
+                                    <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">
                                         <span class="action-arrow-icon">←</span>
                                     </button>
                                 </div>
-                                <button class="btn-arrow primary-move" onclick={() => moveTask(task, 'done')} title="Abschließen">
+                                <button type="button" class="btn-arrow primary-move" onclick={() => moveTask(task, 'done')} title="Abschließen">
                                     <span>Erledigen</span>
                                     <span class="action-arrow-icon">→</span>
                                 </button>
@@ -342,10 +377,10 @@
                                 <p>{task.description}</p>
                             </div>
                             <div class="task-actions">
-                                <button class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">🗑️</span>
+                                <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                    <span class="action-icon">X</span>
                                 </button>
-                                <button class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">
+                                <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">
                                     <span class="action-arrow-icon">←</span>
                                     <span>Zurück</span>
                                 </button>
@@ -369,13 +404,13 @@
                         <span class="profile-status">Online</span>
                     </div>
                 </div>
-                <button class="btn-icon-settings" onclick={() => showSettingsPopup = true} title="Einstellungen">
+                <button type="button" class="btn-icon-settings" onclick={() => showSettingsPopup = true} title="Einstellungen">
                     ⚙️
                 </button>
             </div>
 
             <!-- Schnell-Aktion Button -->
-            <button class="btn-primary btn-glow" onclick={() => showCreateTaskPopup = true}>
+            <button type="button" class="btn-primary btn-glow" onclick={() => showCreateTaskPopup = true}>
                 + Neuer Task
             </button>
 
@@ -393,7 +428,7 @@
                 </div>
             </div>
 
-            <!-- Team Mitglieder Widget (wird angezeigt, wenn currentTeamId > 0 ist) -->
+            <!-- Team Mitglieder Widget -->
             {#if currentTeamId > 0}
                 <div class="widget-card members-widget">
                     <div class="widget-header">
@@ -411,7 +446,7 @@
                         {/each}
                     </ul>
 
-                    <button class="btn-leave-team" onclick={handleLeaveTeam}>
+                    <button type="button" class="btn-leave-team" onclick={handleLeaveTeam}>
                         Team verlassen
                     </button>
                 </div>
@@ -421,8 +456,12 @@
 
     <!-- POPUP: Neuen Task erstellen -->
     {#if showCreateTaskPopup}
-        <div class="modal-backdrop" onclick={() => showCreateTaskPopup = false}>
-            <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showCreateTaskPopup = false}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
                     <div class="modal-icon-badge">✨</div>
                     <h3>Neuen Task erstellen</h3>
@@ -436,8 +475,8 @@
                     <textarea id="desc" bind:value={newTaskDesc} placeholder="Kurze Beschreibung..." rows="3"></textarea>
                 </div>
                 <div class="modal-actions">
-                    <button class="btn-close" onclick={() => showCreateTaskPopup = false}>Abbrechen</button>
-                    <button class="btn-primary" onclick={handleCreateTask}>Erstellen</button>
+                    <button type="button" class="btn-close" onclick={() => showCreateTaskPopup = false}>Abbrechen</button>
+                    <button type="button" class="btn-primary" onclick={handleCreateTask}>Erstellen</button>
                 </div>
             </div>
         </div>
@@ -445,8 +484,12 @@
 
     <!-- POPUP: Team erstellen / beitreten -->
     {#if showTeamPopup}
-        <div class="modal-backdrop" onclick={() => showTeamPopup = false}>
-            <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showTeamPopup = false}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
                     <div class="modal-icon-badge">👥</div>
                     <h3>Team verwalten</h3>
@@ -460,13 +503,13 @@
                     <input id="teamPass" type="password" bind:value={teamPassword} placeholder="Geheimes Passwort..." />
                 </div>
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button class="btn-primary" onclick={() => handleTeamAction('create')} style="width: 100%;">
+                    <button type="button" class="btn-primary" onclick={() => handleTeamAction('create')} style="width: 100%;">
                         Team erstellen
                     </button>
-                    <button class="btn-secondary" onclick={() => handleTeamAction('join')} style="width: 100%;">
+                    <button type="button" class="btn-secondary" onclick={() => handleTeamAction('join')} style="width: 100%;">
                         Team beitreten
                     </button>
-                    <button class="btn-close" onclick={() => showTeamPopup = false} style="width: 100%; margin-top: 0.5rem;">
+                    <button type="button" class="btn-close" onclick={() => showTeamPopup = false} style="width: 100%; margin-top: 0.5rem;">
                         Abbrechen
                     </button>
                 </div>
@@ -474,16 +517,36 @@
         </div>
     {/if}
 
-    <!-- POPUP: Settings & Logout -->
+    <!-- POPUP: Einstellungen & Logout -->
     {#if showSettingsPopup}
-        <div class="modal-backdrop" onclick={() => showSettingsPopup = false}>
-            <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showSettingsPopup = false}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
                     <div class="modal-icon-badge">⚙️</div>
                     <h3>Einstellungen</h3>
                 </div>
-                <button class="btn-logout" onclick={logout}>Ausloggen</button>
-                <button class="btn-close" onclick={() => showSettingsPopup = false} style="width: 100%;">Schließen</button>
+                <div class="form-group">
+                    <label for="newUsername">Neuer Username</label>
+                    <input id="newUsername" type="text" bind:value={newUsername} placeholder="Neuer Username" />
+                </div>
+                <div class="form-group">
+                    <label for="oldPassword">Altes Passwort</label>
+                    <input id="oldPassword" type="password" bind:value={oldPassword} placeholder="Altes Passwort" />
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Neues Passwort</label>
+                    <input id="newPassword" type="password" bind:value={newPassword} placeholder="Neues Passwort" />
+                </div>
+                <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
+                    <button type="button" class="btn-secondary" onclick={() => handleChangeUsername()} style="width: 100%;">Username ändern</button>
+                    <button type="button" class="btn-secondary" onclick={() => handleChangePassword()} style="width: 100%;">Passwort ändern</button>
+                    <button type="button" class="btn-logout" onclick={logout} style="width: 100%;">Ausloggen</button>
+                    <button type="button" class="btn-close" onclick={() => showSettingsPopup = false} style="width: 100%; margin-top: 0.5rem;">Schließen</button>
+                </div>
             </div>
         </div>
     {/if}
@@ -569,7 +632,6 @@
 
     .kanban-main { padding: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; }
     
-    /* ZENTRALE AUSRICHTUNG HEADER */
     .board-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.3rem; margin-bottom: 0.5rem; }
     .header-title-wrapper { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 100%; }
     .board-header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.025em; }
@@ -607,10 +669,8 @@
     .task-card::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 3px;
-        height: 100%;
+        top: 0; left: 0;
+        width: 3px; height: 100%;
         background: linear-gradient(180deg, #059669, #34d399);
         opacity: 0.6;
         transition: opacity 0.2s;
@@ -622,9 +682,7 @@
         box-shadow: 0 8px 24px rgba(5, 150, 105, 0.2); 
     }
     
-    .task-card:hover::before {
-        opacity: 1;
-    }
+    .task-card:hover::before { opacity: 1; }
     
     .task-content h4 { margin: 0 0 0.4rem 0; color: #ffffff; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: break-word; }
     .task-content p { margin: 0; color: #a1a1aa; font-size: 0.85rem; line-height: 1.45; overflow-wrap: break-word; }
@@ -637,71 +695,56 @@
         background: rgba(24, 24, 27, 0.8); 
         border: 1px solid rgba(16, 185, 129, 0.2); 
         color: #d4d4d8; 
-        font-size: 0.8rem; 
-        font-weight: 500;
-        cursor: pointer; 
-        padding: 0.4rem 0.7rem; 
-        border-radius: 0.4rem; 
-        display: flex; 
-        align-items: center; 
-        gap: 0.35rem;
+        font-size: 0.8rem; font-weight: 500;
+        cursor: pointer; padding: 0.4rem 0.7rem; border-radius: 0.4rem; 
+        display: flex; align-items: center; gap: 0.35rem;
         transition: all 0.2s; 
     }
     
     .btn-arrow:hover { 
         background: rgba(16, 185, 129, 0.15); 
-        color: #34d399; 
-        border-color: rgba(16, 185, 129, 0.4);
+        color: #34d399; border-color: rgba(16, 185, 129, 0.4);
         transform: translateY(-1px);
     }
     
-    .primary-move {
-        background: rgba(5, 150, 105, 0.2);
-        color: #34d399;
-        border-color: rgba(5, 150, 105, 0.4);
-    }
-    
-    .primary-move:hover {
-        background: rgba(5, 150, 105, 0.35);
-        color: #ffffff;
-    }
+    .primary-move { background: rgba(5, 150, 105, 0.2); color: #34d399; border-color: rgba(5, 150, 105, 0.4); }
+    .primary-move:hover { background: rgba(5, 150, 105, 0.35); color: #ffffff; }
 
     .action-arrow-icon { font-size: 0.9rem; font-weight: bold; }
 
     .btn-delete { 
         background: rgba(239, 68, 68, 0.08); 
         border: 1px solid rgba(239, 68, 68, 0.2); 
-        border-radius: 0.4rem; 
-        cursor: pointer; 
-        padding: 0.4rem 0.5rem; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        border-radius: 0.4rem; cursor: pointer; padding: 0.4rem 0.5rem; 
+        display: flex; align-items: center; justify-content: center;
         transition: all 0.2s; 
     }
-    
-    .btn-delete:hover { 
-        background: rgba(239, 68, 68, 0.2); 
-        border-color: rgba(239, 68, 68, 0.4);
-    }
-    
+    .btn-delete:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
     .action-icon { font-size: 0.85rem; }
 
     .empty-text { color: #52525b; font-size: 0.85rem; font-style: italic; text-align: center; margin-top: 1rem; }
 
-    /* BUTTONS & MODALS */
+    /* FORMULARE & MODALS */
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    input, textarea {
+        background: #09090b; border: 1px solid #27272a; color: #fff; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: #10b981; }
+
     button { padding: 0.6rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 0.9rem; transition: background 0.2s, filter 0.2s; }
 
-    .btn-primary { background-color: #059669; color: white; }
+    .btn-primary { background-color: #059669; color: white; width: 100%; }
     .btn-primary:hover { background-color: #047857; box-shadow: 0 0 12px rgba(5, 150, 105, 0.4); }
 
-    .btn-secondary { background-color: rgba(24, 24, 27, 0.8); color: #f4f4f5; border: 1px solid rgba(16, 185, 129, 0.3); width: 100%; text-align: left; }
+    .btn-secondary { background-color: rgba(24, 24, 27, 0.8); color: #f4f4f5; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center; }
     .btn-secondary:hover { background-color: rgba(39, 39, 42, 0.9); border-color: #10b981; }
 
-    .btn-logout { background-color: #ef4444; color: white; width: 100%; }
+    .btn-logout { background-color: #ef4444; color: white; }
     .btn-logout:hover { background-color: #dc2626; }
 
-    .btn-close { background-color: transparent; color: #a1a1aa; border: 1px solid #3f3f46; }
+    .btn-close { background-color: transparent; color: #a1a1aa; border: 1px solid #3f3f46; width: 100%; }
     .btn-close:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
 
     .btn-leave-team {
@@ -710,26 +753,10 @@
     .btn-leave-team:hover { background-color: rgba(239, 68, 68, 0.2); }
 
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: #18181b; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    .modal-content { background: #18181b; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2rem; border-radius: 0.85rem; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
     
-    .modal-header-modern { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.2rem; }
+    .modal-header-modern { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
     .modal-icon-badge { width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
-    .modal-content h3 { margin: 0; font-size: 1.15rem; color: #fff; font-weight: 600; }
-
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-    .form-group label { font-size: 0.85rem; color: #a1a1aa; font-weight: 500; }
-    .form-group input, .form-group textarea {
-        background: #09090b; border: 1px solid #27272a; padding: 0.75rem; border-radius: 0.5rem; color: white; font-family: inherit; font-size: 0.9rem;
-    }
-    .form-group input:focus, .form-group textarea:focus { border-color: #10b981; outline: none; box-shadow: 0 0 8px rgba(16, 185, 129, 0.2); }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
-
-    @media (max-width: 1024px) { .dashboard-layout { grid-template-columns: 200px 1fr 220px; } }
-    @media (max-width: 768px) {
-        :global(html), :global(body) { height: auto; overflow-y: auto; }
-        .dashboard-layout { display: flex; flex-direction: column; height: auto; }
-        .sidebar-left, .sidebar-right { width: 100%; border: none; border-bottom: 1px solid rgba(39, 39, 42, 0.5); }
-        .kanban-main { padding: 1rem; }
-        .kanban-columns { grid-template-columns: 1fr; }
-    }
+    .modal-header-modern h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+    .modal-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 </style>
