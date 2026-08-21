@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam} from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam, changePassword, changeUsername } from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
 
     let isLoading: boolean = $state(true);
@@ -16,6 +16,12 @@
     let newTaskTitle = $state("");
     let newTaskDesc = $state("");
 
+
+    let newPassword = $state("");
+    let oldPassword = $state("");
+    let newUsername = $state("");
+    
+
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
 
@@ -25,7 +31,7 @@
 
     let teamMembers = $state<string[]>([]);
 
-    export interface Task {
+     interface Task {
         id: number;
         title: string;
         description: string;
