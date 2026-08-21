@@ -36,6 +36,40 @@
         status: 'Todo' | 'in-progress' | 'done';
     }
 
+
+    async function handleChangeUsername() {
+    if (!newUsername.trim()) {
+        alert("Bitte gib einen neuen Benutzernamen ein.");
+        return;
+    }
+    try {
+        const message = await changeUsername(newUsername);
+        alert(message); // Zeigt die Erfolgsmeldung vom Backend
+        newUsername = "";
+        showSettingsPopup = false;
+    } catch (err) {
+        console.error(err);
+        alert("Fehler beim Ändern des Benutzernamens.");
+    }
+}
+
+async function handleChangePassword() {
+    if (!oldPassword || !newPassword) {
+        alert("Bitte fülle alle Passwort-Felder aus.");
+        return;
+    }
+    try {
+        const message = await changePassword(oldPassword, newPassword);
+        alert(message); // Zeigt die Erfolgsmeldung vom Backend
+        oldPassword = "";
+        newPassword = "";
+        showSettingsPopup = false;
+    } catch (err) {
+        console.error(err);
+        alert("Fehler beim Ändern des Passworts (Altes Passwort korrekt?).");
+    }
+}
+
     async function loadTasks() {
         try {
             if (currentTeamId > 0) {
@@ -508,8 +542,8 @@
                     <input id="newPassword" type="password" bind:value={newPassword} placeholder="Neues Passwort" />
                 </div>
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button type="button" class="btn-secondary" onclick={() => changeUsername(newUsername)} style="width: 100%;">Username ändern</button>
-                    <button type="button" class="btn-secondary" onclick={() => changePassword(oldPassword, newPassword)} style="width: 100%;">Passwort ändern</button>
+                    <button type="button" class="btn-secondary" onclick={() => handleChangeUsername()} style="width: 100%;">Username ändern</button>
+                    <button type="button" class="btn-secondary" onclick={() => handleChangePassword()} style="width: 100%;">Passwort ändern</button>
                     <button type="button" class="btn-logout" onclick={logout} style="width: 100%;">Ausloggen</button>
                     <button type="button" class="btn-close" onclick={() => showSettingsPopup = false} style="width: 100%; margin-top: 0.5rem;">Schließen</button>
                 </div>
