@@ -82,12 +82,12 @@
 
         <div class="input-group">
             <div class="field">
-                <label>Username</label>
-                <input type="text" placeholder="Username" bind:value={Username} oninput={() => {loginState = true; registerState = true;}} />
+                <label for="username-input">Username</label>
+                <input id="username-input" type="text" placeholder="Username" bind:value={Username} oninput={() => {loginState = true; registerState = true;}} />
             </div>
             <div class="field">
-                <label>Password</label>
-                <input type="password" placeholder="Password" bind:value={Password} oninput={() => {loginState = true; registerState = true;}} />
+                <label for="password-input">Password</label>
+                <input id="password-input" type="password" placeholder="Password" bind:value={Password} oninput={() => {loginState = true; registerState = true;}} />
             </div>
         </div>
 
