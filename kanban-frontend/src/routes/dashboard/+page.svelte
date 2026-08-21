@@ -13,21 +13,21 @@
     let showCreateTaskPopup: boolean = $state(false); 
     
     // Felder für neuen Task
-    let newTaskTitle = $state("");
-    let newTaskDesc = $state("");
+    let newTaskTitle: string = $state("");
+    let newTaskDesc: string = $state("");
 
-    let newPassword = $state("");
-    let oldPassword = $state("");
-    let newUsername = $state("");
+    let newPassword: string = $state("");
+    let oldPassword: string = $state("");
+    let newUsername: string = $state("");
 
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
 
     // Felder für Team erstellen/beitreten
-    let teamName = $state("");
-    let teamPassword = $state("");
+    let teamName: string = $state("");
+    let teamPassword: string = $state("");
 
-    let teamMembers = $state<string[]>([]);
+    let teamMembers: string[] = $state([]);
 
      interface Task {
         id: number;
