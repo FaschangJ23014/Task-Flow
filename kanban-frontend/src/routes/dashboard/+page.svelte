@@ -160,6 +160,11 @@ async function handleChangePassword() {
             await loadTasks();
         });
 
+        connection.on("ReceiveUpdateUsername", async (message) => {
+           console.log("Username-Update empfangen:", message);
+           await loadTeamMembersList(); 
+        });
+
         connection.on("UserJoined", async (message) => {
             console.log("Neues Mitglied:", message);
             await loadTeamMembersList();

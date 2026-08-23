@@ -1,10 +1,12 @@
 ﻿using Kanban.Api.Data;
 using Kanban.Api.Models;
+using Kanban.Api.Hubs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Kanban.Api.Services;
 
@@ -13,11 +15,13 @@ public class AuthService
     private readonly PasswordHasher<User> _hasher = new();
     private readonly IConfiguration _config;
     private readonly DataContext _data;
+    private readonly IHubContext<KanbanHub> _hubContext;
 
-    public AuthService(IConfiguration config, DataContext data)
+    public AuthService(IConfiguration config, DataContext data, IHubContext<KanbanHub> hubContext)
     {
         _config = config;
         _data = data;
+        _hubContext = hubContext;
     }
 
     public string CreateToken(User user)
@@ -111,6 +115,17 @@ public class AuthService
         try
         {
             _data.SaveChanges();
+
+            var teamIds = _data.TeamMembers
+            .Where(tm => tm.UserId == userId)
+            .Select(tm => tm.TeamId)
+            .ToList();
+    
+            foreach (var teamId in teamIds)
+            {
+            _hubContext.Clients.Group("Team_" + teamId).SendAsync("ReceiveUpdateUsername", "Username wurde geändert!");
+            }
+
             return true;
         }
         catch
