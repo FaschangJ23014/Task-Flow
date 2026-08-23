@@ -3,6 +3,7 @@
     import { goto } from '$app/navigation';
     import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam, changePassword, changeUsername } from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
+    import { version } from '../../../package.json';
 
     let isLoading: boolean = $state(true);
     let tasks: Task[] = $state([]);
@@ -300,7 +301,7 @@ async function handleChangePassword() {
             </div>
 
             <div class="sidebar-footer">
-                <p class="app-version">v1.2.0 • Realtime Sync</p>
+                <p class="app-version">v {version} • Realtime Sync</p>
             </div>
         </aside>
         
