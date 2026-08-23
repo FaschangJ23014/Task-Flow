@@ -149,7 +149,7 @@ async function handleChangePassword() {
 
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("http://localhost:5121/kanbanHub", { 
-                accessTokenFactory: () => token,
+                accessTokenFactory: () => localStorage.getItem("token") || "",
                 transport: signalR.HttpTransportType.WebSockets
             })
             .withAutomaticReconnect()
