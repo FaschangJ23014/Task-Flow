@@ -16,12 +16,14 @@ public class TeamService
     private readonly IConfiguration _config;
     private readonly DataContext _data;
     private readonly IHubContext<KanbanHub> _hubContext;
+    private readonly AuthService authService;
 
-    public TeamService(IConfiguration config, DataContext data, IHubContext<KanbanHub> hubContext)
+    public TeamService(IConfiguration config, DataContext data, IHubContext<KanbanHub> hubContext, AuthService _authService)
     {
         _config = config;
         _data = data;
         _hubContext = hubContext;
+        authService = _authService;
     }
 
 
@@ -94,18 +96,24 @@ public class TeamService
              .ToList();
     }
 
-    public bool LeaveTeam(int userId)
+    public string? LeaveTeam(int userId)
 {
     var teamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == userId);
-    if (teamMember == null) return false;
+    if (teamMember == null) return null;
 
     int teamId = teamMember.TeamId;
-
+    
     _data.TeamMembers.Remove(teamMember);
     _data.SaveChanges();
 
     _hubContext.Clients.Group("Team_" + teamId).SendAsync("UserJoined", userId);
 
-    return true;
+    var user = _data.Users.FirstOrDefault(u => u.Id == userId);
+    if (user == null) return null;
+
+    // Ein NEUES Token generieren (jetzt ohne TeamId / TeamId = 0)
+    string newToken = authService.CreateToken(user);
+
+    return newToken;
 }
 }
