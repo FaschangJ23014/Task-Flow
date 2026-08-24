@@ -88,14 +88,15 @@ async function handleChangePassword() {
 
         try {
             const success = await leaveTeam();
-            if (success) {
-                alert("Du hast das Team verlassen. Bitte logge dich kurz neu ein, um deinen Workspace zu aktualisieren.");
-                localStorage.removeItem("token");
-                goto("/");
-            } else {
-                alert("Fehler beim Verlassen des Teams.");
+            if (success.token) {
+                localStorage.setItem("token", success.token);
             }
-        } catch (err) {
+
+            currentTeamId = 0;
+            alert(success.message);
+
+            window.location.reload();
+        } catch (err: any) {
             console.error(err);
             alert("Netzwerkfehler beim Verlassen des Teams.");
         }

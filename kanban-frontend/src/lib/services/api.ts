@@ -99,12 +99,16 @@ export async function getTeamMembers(teamId: number) {
 }
 
 //Team verlassen
-export async function leaveTeam(): Promise<boolean> {
+export async function leaveTeam() {
     const res = await fetch(`${API_URL}/teams/leave`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
-    return res.ok;
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Fehler beim Verlassen des Teams");
+    
+    return data;
 }
 
 //Change Password/Username 
