@@ -80,6 +80,7 @@ public class TeamsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize]
     [HttpPost("leave")]
     public IActionResult LeaveTeam()
     {
@@ -87,10 +88,17 @@ public class TeamsController : ControllerBase
     if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
 
     int userId = int.Parse(userIdString);
-    bool success = teamService.LeaveTeam(userId);
+    
+    string? newToken = teamService.LeaveTeam(userId);
 
-    if (!success) return BadRequest("Du bist in keinem Team oder ein Fehler ist aufgetreten.");
+    if (newToken == null) 
+    {
+        return BadRequest("Du bist in keinem Team oder ein Fehler ist aufgetreten.");
+    }
 
-    return Ok(new { message = "Team erfolgreich verlassen" });
+    return Ok(new { 
+        token = newToken, 
+        message = "Team erfolgreich verlassen." 
+    });
     }
 }
