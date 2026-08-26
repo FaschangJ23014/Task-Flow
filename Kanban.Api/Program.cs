@@ -91,7 +91,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<DataContext>();
-        context.Database.Migrate();
+        context.Database.EnsureCreated();
         Console.WriteLine("Datenbank & Migrationen wurden erfolgreich angewendet.");
     }
     catch (Exception ex)

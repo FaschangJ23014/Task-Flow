@@ -32,7 +32,11 @@ public class TeamsController : ControllerBase
         bool register = teamService.AddTeam(dto.Name, dto.Password, userId);
         if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits" });
 
-        return Ok(new { message = "Team erfolreich erstellt!" });
+        var user = authService.GetUserById(userId);
+        if (user == null) return Unauthorized();
+        var newToken = authService.CreateToken(user);
+
+        return Ok(new { message = "Erfolgreich ein Team erstellt und beigetreten!", token = newToken });
     }
 
     [Authorize]
