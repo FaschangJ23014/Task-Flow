@@ -196,36 +196,34 @@ async function handleChangePassword() {
     }
 
     async function handleTeamAction(action: 'create' | 'join') {
-        if (!teamName.trim() || !teamPassword.trim()) return;
+    if (!teamName.trim() || !teamPassword.trim()) return;
 
-        try {
-            if (action === 'create') {
-                const newToken = await registerTeam(teamName, teamPassword);
-                if (newToken) {
-                    localStorage.setItem("token", newToken);
-                    currentTeamId = getTeamIdFromToken(newToken);
-                }
-                alert("Team erfolgreich erstellt!");
-            } else if (action === 'join') {
-                const newToken = await joinTeam(teamName, teamPassword);
-                if (newToken) {
-                    localStorage.setItem("token", newToken);
-                    currentTeamId = getTeamIdFromToken(newToken);
-                }
-                alert("Team erfolgreich beigetreten!");
-            }
-            
-            showTeamPopup = false;
-            teamName = "";
-            teamPassword = "";
-            await loadTasks();
-            await loadTeamMembersList();
-            window.location.reload(); 
-        } catch (err) {
-            console.error(err);
-            alert(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'} des Teams.`);
+    try {
+        let response;
+        if (action === 'create') {
+            response = await registerTeam(teamName, teamPassword);
+            alert("Team erfolgreich erstellt!");
+        } else if (action === 'join') {
+            response = await joinTeam(teamName, teamPassword);
+            alert("Team erfolgreich beigetreten!");
         }
+
+        if (response && response.token) {
+            localStorage.setItem("token", response.token);
+            currentTeamId = getTeamIdFromToken(response.token);
+        }
+        
+        showTeamPopup = false;
+        teamName = "";
+        teamPassword = "";
+        await loadTasks();
+        await loadTeamMembersList();
+        window.location.reload(); 
+    } catch (err) {
+        console.error(err);
+        alert(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'} des Teams.`);
     }
+}
 
     async function moveTask(task: Task, newStatus: 'Todo' | 'in-progress' | 'done') {
         try {
