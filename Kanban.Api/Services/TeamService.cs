@@ -52,7 +52,7 @@ public class TeamService
         {
             UserId = userId,
             TeamId = team.Id,
-            IsAdmin = true
+            IsAdmin = true // <--- HIER WIRD ER ADMIN DER GRUPPE!
         };
 
         _data.TeamMembers.Add(creatorMember);

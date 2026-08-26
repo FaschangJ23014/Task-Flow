@@ -86,7 +86,7 @@ export async function joinTeam(name: string, password: string) {
     if (!res.ok) throw new Error(data.message || "Fehler beim Beitreten des Teams");
     
     // Gibt das Objekt zurück (enthält data.token und data.message)
-    return data.token; 
+    return data; 
 }
 
 // Team-Mitglieder für eine bestimmte TeamId abrufen
