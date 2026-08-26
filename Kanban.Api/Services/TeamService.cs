@@ -33,18 +33,29 @@ public class TeamService
     public bool VerifyPassword(Team team, string hashedPassword, string providedPassword)
         => _hasher.VerifyHashedPassword(team, hashedPassword, providedPassword) == PasswordVerificationResult.Success;
 
-    public bool AddTeam(string name, string password)
+    public bool AddTeam(string name, string password, int userId)
     {
         if (_data.Teams.Any(x => x.Name == name)) return false;
 
         Team team = new Team
         {
             Name = name,
+
         };
 
         team.JoinPasswordHash = HashPassword(team, password);
 
         _data.Teams.Add(team);
+        _data.SaveChanges();
+
+        TeamMember creatorMember = new TeamMember
+        {
+            UserId = userId,
+            TeamId = team.Id,
+            IsAdmin = true
+        };
+
+        _data.TeamMembers.Add(creatorMember);
         _data.SaveChanges();
         return true;
     }
@@ -102,7 +113,7 @@ public class TeamService
     if (teamMember == null) return null;
 
     int teamId = teamMember.TeamId;
-    
+
     _data.TeamMembers.Remove(teamMember);
     _data.SaveChanges();
 

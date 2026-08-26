@@ -24,7 +24,11 @@ public class TeamsController : ControllerBase
     [HttpPost("register")] 
     public IActionResult Register([FromBody] TeamDto dto)
     {
-        bool register = teamService.AddTeam(dto.Name, dto.Password);
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+        int userId = int.Parse(userIdString);
+        
+        bool register = teamService.AddTeam(dto.Name, dto.Password, userId);
         if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits" });
 
         return Ok(new { message = "Team erfolreich erstellt!" });

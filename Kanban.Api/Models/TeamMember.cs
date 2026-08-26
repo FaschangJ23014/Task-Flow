@@ -11,5 +11,7 @@ namespace Kanban.Api.Models
 
         public int TeamId { get; set; }
         public Team Team { get; set; } = null!;
+
+        public bool IsAdmin { get; set; } = false;
     }
 }
