@@ -3,6 +3,7 @@ using Kanban.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Kanban.Api.Data;
 
 namespace Kanban.Api.Controllers;
 
@@ -13,12 +14,14 @@ public class TeamsController : ControllerBase
 {
     private readonly TeamService teamService;
     private readonly AuthService authService; //Für die TeamToken
+    private readonly DataContext _data;
    
 
-    public TeamsController(TeamService _teamService, AuthService _authService)
+    public TeamsController(TeamService _teamService, AuthService _authService, DataContext data)
     {
         teamService = _teamService;
         authService = _authService;
+        _data = data;
     }
 
     [Authorize]
@@ -78,15 +81,16 @@ public class TeamsController : ControllerBase
     [HttpGet("members/{teamId}")]
     public IActionResult GetTeamMembers(int teamId)
     {
-        var members = teamService.GetTeamMembers(teamId);
-        
-        // mappe es anonym, damit Passwörter oder Hashes auf gar keinen Fall nach außen wandern
-        var result = members.Select(m => new {
-            m.Id,
-            m.Username
-        });
+        var members = _data.TeamMembers
+         .Where(x => x.TeamId == teamId)
+         .Select(x => new {
+             x.User.Id,
+             x.User.Username,
+             x.IsAdmin
+         })
+         .ToList();
 
-        return Ok(result);
+    return Ok(members);
     }
 
     [Authorize]
@@ -109,5 +113,22 @@ public class TeamsController : ControllerBase
         token = newToken, 
         message = "Team erfolgreich verlassen." 
     });
+    }
+
+    [Authorize]
+    [HttpPost("kick/{targetUserId}")]
+    public IActionResult KickMember(int targetUserId)
+    {
+    var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+    int adminUserId = int.Parse(userIdString);
+
+    var adminTeamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == adminUserId);
+    if (adminTeamMember == null) return BadRequest("Du bist in keinem Team.");
+
+    bool success = teamService.RemoveMemberFromTeam(adminUserId, targetUserId, adminTeamMember.TeamId);
+    if (!success) return BadRequest(new { message = "Konnte Mitglied nicht kicken (Keine Admin-Rechte?)." });
+
+    return Ok(new { message = "Mitglied erfolgreich gekickt." });
     }
 }

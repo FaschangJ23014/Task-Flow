@@ -99,14 +99,6 @@ public class TeamService
         return team;
     }
 
-    public List<User> GetTeamMembers(int teamId)
-    {
-        return _data.TeamMembers
-             .Where(x => x.TeamId == teamId)
-             .Select(x => x.User)
-             .ToList();
-    }
-
     public string? LeaveTeam(int userId)
 {
     var teamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == userId);
@@ -127,4 +119,24 @@ public class TeamService
 
     return newToken;
 }
+
+public bool RemoveMemberFromTeam(int adminUserId, int targetUserId, int teamId)
+{
+    var adminMembership = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == adminUserId && tm.TeamId == teamId && tm.IsAdmin);
+    if (adminMembership == null) return false; 
+
+    var targetMembership = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == targetUserId && tm.TeamId == teamId);
+    if (targetMembership == null) return false;
+
+    if (adminUserId == targetUserId) return false;
+
+    _data.TeamMembers.Remove(targetMembership);
+    _data.SaveChanges();
+
+    _hubContext.Clients.Group("Team_" + teamId).SendAsync("UserJoined", targetUserId);
+
+    return true;
+}
+
+
 }
