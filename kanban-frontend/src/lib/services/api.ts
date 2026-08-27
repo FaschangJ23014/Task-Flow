@@ -132,12 +132,20 @@ export async function changeUsername(newUsername: string) {
     return res.text();
 }
 
-export async function kickTeamMember(userId: number) {
-    const res = await fetch(`${API_URL}/teams/kick/${userId}`, {
+export async function kickTeamMember(teamId: number, userId: number) {
+    const res = await fetch(`${API_URL}/teams/kick/${teamId}/${userId}`, {
         method: "POST",
         headers: getAuthHeaders()
     });
-    const data = await res.json();
+    
+    const contentType = res.headers.get("content-type");
+    let data;
+    if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+    } else {
+        data = { message: await res.text() };
+    }
+
     if (!res.ok) throw new Error(data.message || "Fehler beim Kicken");
     return data;
 }

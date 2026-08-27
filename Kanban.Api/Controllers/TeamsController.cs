@@ -84,9 +84,9 @@ public class TeamsController : ControllerBase
         var members = _data.TeamMembers
          .Where(x => x.TeamId == teamId)
          .Select(x => new {
-             x.User.Id,
-             x.User.Username,
-             x.IsAdmin
+             id = x.User.Id,      
+             username = x.User.Username, 
+             isAdmin = x.IsAdmin      
          })
          .ToList();
 
@@ -116,18 +116,15 @@ public class TeamsController : ControllerBase
     }
 
     [Authorize]
-    [HttpPost("kick/{targetUserId}")]
-    public IActionResult KickMember(int targetUserId)
+    [HttpPost("kick/{teamId}/{targetUserId}")]
+    public IActionResult KickMember(int teamId, int targetUserId)
     {
     var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
     int adminUserId = int.Parse(userIdString);
 
-    var adminTeamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == adminUserId);
-    if (adminTeamMember == null) return BadRequest("Du bist in keinem Team.");
-
-    bool success = teamService.RemoveMemberFromTeam(adminUserId, targetUserId, adminTeamMember.TeamId);
-    if (!success) return BadRequest(new { message = "Konnte Mitglied nicht kicken (Keine Admin-Rechte?)." });
+    bool success = teamService.RemoveMemberFromTeam(adminUserId, targetUserId, teamId);
+    if (!success) return BadRequest(new { message = "Konnte Mitglied nicht kicken (Keine Admin-Rechte oder falsches Team?)." });
 
     return Ok(new { message = "Mitglied erfolgreich gekickt." });
     }

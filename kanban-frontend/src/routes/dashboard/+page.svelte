@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam, changePassword, changeUsername } from '$lib/services/api';
+    import { getMyTasks, getTasksByTeam, createKanbanTask, updateKanbanTask, deleteKanbanTask, registerTeam, joinTeam, getTeamMembers, leaveTeam, changePassword, changeUsername, kickTeamMember} from '$lib/services/api';
     import * as signalR from "@microsoft/signalr";
     import { version } from '../../../package.json';
 
@@ -28,7 +28,9 @@
     let teamName: string = $state("");
     let teamPassword: string = $state("");
 
-    let teamMembers: string[] = $state([]);
+    let teamMembers: { id: number; username: string; isAdmin: boolean }[] = $state([]);
+    let isCurrentuserAdmin: boolean = $state(false);
+    let currentUserId: number = $state(0);
 
      interface Task {
         id: number;
@@ -102,6 +104,16 @@ async function handleChangePassword() {
         }
     }
 
+    async function handleKick(userIdToKick: number) {
+        if (!confirm("Willst du dieses Mitglied wirklich aus dem Team werfen?")) return;
+        try {
+            await kickTeamMember(currentTeamId, userIdToKick); 
+            await loadTeamMembersList();
+        } catch (err: any) {
+            alert(err.message || "Fehler beim Kicken.");
+        }
+    }
+
     function getTeamIdFromToken(token: string): number {
         try {
             const base64Url = token.split('.')[1];
@@ -123,17 +135,49 @@ async function handleChangePassword() {
         }
     }
 
+    function getUserIdFromToken(token: string): number {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payload = JSON.parse(jsonPayload);
+        
+        for (const key of Object.keys(payload)) {
+            if (key.toLowerCase().includes('nameid') || key.toLowerCase() === 'sub' || key.toLowerCase() === 'id') {
+                const val = parseInt(payload[key]);
+                if (!isNaN(val)) return val;
+            }
+        }
+        return 0;
+    } catch (e) {
+        return 0;
+    }
+    }
+
     async function loadTeamMembersList() {
         if (currentTeamId > 0) {
             try {
                 const members = await getTeamMembers(currentTeamId);
-                teamMembers = members.map((m: any) => m.username);
+                console.log("Rohdaten von API (Team Members):", members); // Was liefert C# hier?
+                console.log("Aktuelle User-ID zum Vergleichen:", currentUserId); // Ist das die 20?
+                
+                teamMembers = members;
+
+                const me = members.find((m: any) => m.id === currentUserId || m.Id === currentUserId);
+                console.log("Eigenes Mitglieds-Objekt gefunden:", me); // Steht hier undefined?
+
+                isCurrentuserAdmin = me ? (me.isAdmin ?? me.IsAdmin ?? false) : false;
+                console.log("isCurrentuserAdmin gesetzt auf:", isCurrentuserAdmin); // True oder false?
             } catch (err) {
                 console.error("Fehler beim Laden der Team-Mitglieder:", err);
                 teamMembers = [];
+                isCurrentuserAdmin = false;
             }
         } else {
             teamMembers = [];
+            isCurrentuserAdmin = false;
         }
     }
 
@@ -145,6 +189,9 @@ async function handleChangePassword() {
         }
 
         currentTeamId = getTeamIdFromToken(token);
+        currentUserId = getUserIdFromToken(token);
+        console.log("Meine User-ID:", currentUserId);
+
         await loadTasks();
         await loadTeamMembersList();
         isLoading = false;
@@ -443,8 +490,13 @@ async function handleChangePassword() {
                     <ul class="members-list">
                         {#each teamMembers as member}
                             <li class="member-item">
-                                <div class="member-avatar">{member.charAt(0).toUpperCase()}</div>
-                                <span class="member-name">{member}</span>
+                                <div class="member-avatar">{member.username.charAt(0).toUpperCase()}</div>
+                                <span class="member-name">{member.username} {member.isAdmin ? '(Admin)' : ''}</span>
+
+                                <!--Kick Button wenn Admin-->
+                                {#if isCurrentuserAdmin && member.id !== currentUserId}
+                                  <button type="button" class="btn-kick" onclick={() => handleKick(member.id)}>❌</button>
+                                {/if}
                             </li>
                         {:else}
                             <li class="empty-members">Keine weiteren Mitglieder im Team</li>
