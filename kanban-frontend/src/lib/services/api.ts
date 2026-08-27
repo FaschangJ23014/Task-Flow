@@ -131,3 +131,13 @@ export async function changeUsername(newUsername: string) {
     if (!res.ok) throw new Error("Fehler beim Ändern des Usernames");
     return res.text();
 }
+
+export async function kickTeamMember(userId: number) {
+    const res = await fetch(`${API_URL}/teams/kick/${userId}`, {
+        method: "POST",
+        headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Fehler beim Kicken");
+    return data;
+}
