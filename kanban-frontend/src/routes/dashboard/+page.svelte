@@ -38,7 +38,6 @@
     let toastVisible: boolean = $state(false);
     let toastTimer: any = null;
 
-    // Weitere Inline Bestätigungen (Kicken / Verlassen bleiben wie gehabt, falls gewünscht)
     let kickingMemberId: number | null = $state(null);
     let confirmingLeave: boolean = $state(false);
 
@@ -220,7 +219,10 @@
     });
 
     async function handleCreateTask() {
-        if (!newTaskTitle.trim()) return; 
+        if (!newTaskTitle.trim()) {
+            showToast("Bitte gib einen Titel für den Task ein.", 'error');
+            return; 
+        }
         try {
             await createKanbanTask(newTaskTitle, newTaskDesc, 'Todo', currentTeamId);
             showCreateTaskPopup = false;
@@ -315,7 +317,13 @@
 
     {#if toastVisible}
         <div class="toast-notification {toastType}">
-            <span class="toast-icon">{toastType === 'success' ? '✅' : '⚠️'}</span>
+            <span class="toast-icon">
+                {#if toastType === 'success'}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                {:else}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                {/if}
+            </span>
             <span class="toast-text">{toastMessage}</span>
         </div>
     {/if}
@@ -325,18 +333,30 @@
         <!-- 1. LINKE SIDEBAR -->
         <aside class="sidebar-left">
             <div class="sidebar-brand">
-                <span class="brand-icon"></span>
+                <div class="brand-logo-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                </div>
                 <h2>FlowBoard</h2>
             </div>
 
             <div class="nav-section">
                 <span class="sidebar-label">Navigation</span>
-                <button type="button" class="nav-item active">📊 Projekt Board</button>
+                <button type="button" class="nav-item active">
+                    <span class="nav-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    </span> 
+                    Projekt Board
+                </button>
             </div>
 
             <div class="nav-section">
                 <span class="sidebar-label">Workspace & Teams</span>
-                <button type="button" class="btn-secondary" onclick={() => showTeamPopup = true}>👥 Team verwalten</button>
+                <button type="button" class="btn-secondary" onclick={() => showTeamPopup = true}>
+                    <span class="btn-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </span> 
+                    Team verwalten
+                </button>
                 
                 <div class="team-status-box">
                     {#if currentTeamId > 0}
@@ -384,11 +404,15 @@
                             </div>
                             <div class="task-actions">
                                 <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">X</span>
+                                    <span class="action-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">
                                     <span>In Bearbeitung</span>
-                                    <span class="action-arrow-icon">→</span>
+                                    <span class="action-arrow-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -409,15 +433,21 @@
                             <div class="task-actions">
                                 <div class="task-actions-left">
                                     <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
-                                        <span class="action-icon">X</span>
+                                        <span class="action-icon">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </span>
                                     </button>
                                     <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">
-                                        <span class="action-arrow-icon">←</span>
+                                        <span class="action-arrow-icon">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                                        </span>
                                     </button>
                                 </div>
                                 <button type="button" class="btn-arrow primary-move" onclick={() => moveTask(task, 'done')} title="Abschließen">
                                     <span>Erledigen</span>
-                                    <span class="action-arrow-icon">→</span>
+                                    <span class="action-arrow-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -437,10 +467,14 @@
                             </div>
                             <div class="task-actions">
                                 <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
-                                    <span class="action-icon">X</span>
+                                    <span class="action-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">
-                                    <span class="action-arrow-icon">←</span>
+                                    <span class="action-arrow-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                                    </span>
                                     <span>Zurück</span>
                                 </button>
                             </div>
@@ -457,20 +491,25 @@
             <!-- Profil & Settings Header -->
             <div class="right-header-card">
                 <div class="profile-info">
-                    <div class="avatar-circle">⚡</div>
+                    <div class="avatar-circle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </div>
                     <div class="profile-text">
                         <span class="profile-name">Workspace User</span>
                         <span class="profile-status">Online</span>
                     </div>
                 </div>
                 <button type="button" class="btn-icon-settings" onclick={() => showSettingsPopup = true} title="Einstellungen">
-                    ⚙️
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
             </div>
 
             <!-- Schnell-Aktion Button -->
             <button type="button" class="btn-primary btn-glow" onclick={() => showCreateTaskPopup = true}>
-                + Neuer Task
+                <span style="display: inline-flex; vertical-align: middle; margin-right: 4px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </span>
+                Neuer Task
             </button>
 
             <!-- Statistik Widget -->
@@ -504,10 +543,14 @@
                                     {#if kickingMemberId === member.id}
                                         <div style="display: flex; gap: 0.2rem;">
                                             <button type="button" class="btn-yes" onclick={() => handleKick(member.id)}>Ja</button>
-                                            <button type="button" class="btn-no" onclick={() => kickingMemberId = null}>X</button>
+                                            <button type="button" class="btn-no" onclick={() => kickingMemberId = null}>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
                                         </div>
                                     {:else}
-                                        <button type="button" class="btn-kick" onclick={() => kickingMemberId = member.id} style="background:none; border:none; cursor:pointer;">❌</button>
+                                        <button type="button" class="btn-kick" onclick={() => kickingMemberId = member.id} title="Mitglied kicken">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
                                     {/if}
                                 {/if}
                             </li>
@@ -519,7 +562,9 @@
                     {#if confirmingLeave}
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                             <button type="button" class="btn-logout" style="flex: 1; font-size: 0.8rem;" onclick={handleLeaveTeam}>Wirklich?</button>
-                            <button type="button" class="btn-close" style="width: auto;" onclick={() => confirmingLeave = false}>X</button>
+                            <button type="button" class="btn-close" style="width: auto;" onclick={() => confirmingLeave = false}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
                     {:else}
                         <button type="button" class="btn-leave-team" onclick={() => confirmingLeave = true}>
@@ -540,7 +585,9 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
-                    <div class="modal-icon-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);">⚠️</div>
+                    <div class="modal-icon-badge warning-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </div>
                     <h3>Task löschen?</h3>
                 </div>
                 <p style="color: #a1a1aa; font-size: 0.9rem; margin: 0;">Möchtest du diesen Task wirklich unwiderruflich löschen?</p>
@@ -561,7 +608,9 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
-                    <div class="modal-icon-badge">✨</div>
+                    <div class="modal-icon-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </div>
                     <h3>Neuen Task erstellen</h3>
                 </div>
                 <div class="form-group">
@@ -589,7 +638,9 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
-                    <div class="modal-icon-badge">👥</div>
+                    <div class="modal-icon-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
                     <h3>Team verwalten</h3>
                 </div>
                 <div class="form-group">
@@ -624,7 +675,9 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
                 <div class="modal-header-modern">
-                    <div class="modal-icon-badge">⚙️</div>
+                    <div class="modal-icon-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </div>
                     <h3>Einstellungen</h3>
                 </div>
                 <div class="form-group">
@@ -668,18 +721,29 @@
     .sidebar-left { border-left: none; border-top: none; border-bottom: none; }
     .sidebar-right { border-right: none; border-top: none; border-bottom: none; gap: 1.2rem; }
     
-    /* LINKE SIDEBAR STYLING */
     .sidebar-brand { display: flex; align-items: center; gap: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(16, 185, 129, 0.15); }
     .sidebar-brand h2 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.025em; }
-    .brand-icon { font-size: 1.2rem; }
+    .brand-logo-box { width: 30px; height: 30px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #34d399; }
 
     .nav-section { display: flex; flex-direction: column; gap: 0.75rem; }
     .sidebar-label { font-size: 0.75rem; text-transform: uppercase; color: #71717a; font-weight: 600; letter-spacing: 0.05em; }
     
     .nav-item {
         background: transparent; border: none; color: #a1a1aa; text-align: left; padding: 0.6rem 0.8rem; border-radius: 0.5rem; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
     }
     .nav-item:hover, .nav-item.active { background: rgba(16, 185, 129, 0.1); color: #34d399; font-weight: 500; }
+
+    .nav-icon, .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        position: relative;
+        top: -1px; 
+    }
 
     .team-status-box { margin-top: 0.5rem; }
     .status-badge {
@@ -699,15 +763,15 @@
         background: rgba(9, 9, 11, 0.5); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.75rem; padding: 0.8rem 1rem; display: flex; align-items: center; justify-content: space-between;
     }
     .profile-info { display: flex; align-items: center; gap: 0.75rem; }
-    .avatar-circle { width: 36px; height: 36px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+    .avatar-circle { width: 36px; height: 36px; background: linear-gradient(135deg, #059669, #10b981); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
     .profile-text { display: flex; flex-direction: column; }
     .profile-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
     .profile-status { font-size: 0.7rem; color: #34d399; }
 
-    .btn-icon-settings { background: transparent; border: none; font-size: 1.1rem; cursor: pointer; padding: 0.3rem; border-radius: 0.4rem; transition: background 0.2s; }
-    .btn-icon-settings:hover { background: rgba(255, 255, 255, 0.1); }
+    .btn-icon-settings { background: transparent; border: none; color: #a1a1aa; cursor: pointer; padding: 0.4rem; border-radius: 0.4rem; transition: background 0.2s, color 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-icon-settings:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 
-    .btn-glow { width: 100%; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3); font-weight: 600; }
+    .btn-glow { width: 100%; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3); font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
     .widget-card {
         background: rgba(9, 9, 11, 0.4); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.75rem; padding: 1.1rem; display: flex; flex-direction: column; gap: 0.8rem;
@@ -727,6 +791,11 @@
     .member-avatar { width: 24px; height: 24px; background: #047857; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
     .member-name { font-size: 0.85rem; color: #e4e4e7; flex: 1; }
     .empty-members { color: #71717a; font-size: 0.8rem; text-align: center; font-style: italic; padding: 0.5rem 0; }
+    
+    .btn-kick {
+        background: transparent; border: none; color: #a1a1aa; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0.2rem; border-radius: 4px; transition: color 0.2s, background 0.2s;
+    }
+    .btn-kick:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
 
     .kanban-main { padding: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; }
     
@@ -808,17 +877,18 @@
     .primary-move { background: rgba(5, 150, 105, 0.2); color: #34d399; border-color: rgba(5, 150, 105, 0.4); }
     .primary-move:hover { background: rgba(5, 150, 105, 0.35); color: #ffffff; }
 
-    .action-arrow-icon { font-size: 0.9rem; font-weight: bold; }
+    .action-arrow-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 
     .btn-delete { 
         background: rgba(239, 68, 68, 0.08); 
         border: 1px solid rgba(239, 68, 68, 0.2); 
         border-radius: 0.4rem; cursor: pointer; padding: 0.4rem 0.6rem; 
         display: flex; align-items: center; justify-content: center;
+        color: #f87171;
         transition: all 0.2s; 
     }
     .btn-delete:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
-    .action-icon { font-size: 0.85rem; }
+    .action-icon { display: inline-flex; align-items: center; justify-content: center; }
 
     .empty-text { color: #52525b; font-size: 0.85rem; font-style: italic; text-align: center; margin-top: 1rem; }
 
@@ -836,13 +906,21 @@
     .btn-primary { background-color: #059669; color: white; width: 100%; }
     .btn-primary:hover { background-color: #047857; box-shadow: 0 0 12px rgba(5, 150, 105, 0.4); }
 
-    .btn-secondary { background-color: rgba(24, 24, 27, 0.8); color: #f4f4f5; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center; }
+    .btn-secondary { 
+        background-color: rgba(24, 24, 27, 0.8); 
+        color: #f4f4f5; 
+        border: 1px solid rgba(16, 185, 129, 0.3); 
+        text-align: left; 
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
     .btn-secondary:hover { background-color: rgba(39, 39, 42, 0.9); border-color: #10b981; }
 
     .btn-logout { background-color: #ef4444; color: white; }
     .btn-logout:hover { background-color: #dc2626; }
 
-    .btn-close { background-color: transparent; color: #a1a1aa; border: 1px solid #3f3f46; width: 100%; }
+    .btn-close { background-color: transparent; color: #a1a1aa; border: 1px solid #3f3f46; width: 100%; display: inline-flex; align-items: center; justify-content: center; }
     .btn-close:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
 
     .btn-leave-team {
@@ -854,7 +932,8 @@
     .modal-content { background: #18181b; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2rem; border-radius: 0.85rem; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
     
     .modal-header-modern { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
-    .modal-icon-badge { width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .modal-icon-badge { width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #34d399; }
+    .warning-badge { background: rgba(239, 68, 68, 0.15) !important; border-color: rgba(239, 68, 68, 0.3) !important; color: #f87171 !important; }
     .modal-header-modern h3 { margin: 0; font-size: 1.1rem; color: #fff; }
     .modal-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 
@@ -890,5 +969,5 @@
     }
 
     .btn-yes { background: #059669; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
-    .btn-no { background: #dc2626; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
+    .btn-no { background: #dc2626; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 </style>
