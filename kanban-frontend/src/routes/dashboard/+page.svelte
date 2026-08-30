@@ -7,6 +7,9 @@
 
     let isLoading: boolean = $state(true);
     let tasks: Task[] = $state([]);
+
+    let currentUsername: string = $state("Workspace User");
+    let currentTeamName: string = $state(typeof window !== 'undefined' ? localStorage.getItem("currentTeamName") || "" : "");
     
     // Popups
     let showTeamPopup: boolean = $state(false);
@@ -111,6 +114,7 @@
             if (success.token) {
                 localStorage.setItem("token", success.token);
             }
+            localStorage.removeItem("currentTeamName");
             currentTeamId = 0;
             showToast(success.message || "Team verlassen", 'success');
             setTimeout(() => window.location.reload(), 1000);
@@ -167,6 +171,23 @@
         }
     }
 
+    function getUsernameFromToken(token: string): string {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            const payload = JSON.parse(jsonPayload);
+            for (const key of Object.keys(payload)) {
+                if (key.toLowerCase().includes('unique_name') || key.toLowerCase().includes('username') || key.toLowerCase().includes('name')) {
+                    return payload[key];
+                }
+            }
+            return "Workspace User";
+        } catch (e) {
+            return "Workspace User";
+        }
+    }
+
     async function loadTeamMembersList() {
         if (currentTeamId > 0) {
             try {
@@ -174,6 +195,7 @@
                 teamMembers = members;
                 const me = members.find((m: any) => m.id === currentUserId || m.Id === currentUserId);
                 isCurrentuserAdmin = me ? (me.isAdmin ?? me.IsAdmin ?? false) : false;
+
             } catch (err) {
                 console.error("Fehler beim Laden der Team-Mitglieder:", err);
                 teamMembers = [];
@@ -194,6 +216,13 @@
 
         currentTeamId = getTeamIdFromToken(token);
         currentUserId = getUserIdFromToken(token);
+        
+        const savedUsername = localStorage.getItem("username");
+        if (savedUsername) {
+            currentUsername = savedUsername;
+        } else {
+            currentUsername = getUsernameFromToken(token);
+        }
 
         await loadTasks();
         await loadTeamMembersList();
@@ -252,6 +281,8 @@
                 localStorage.setItem("token", response.token);
                 currentTeamId = getTeamIdFromToken(response.token);
             }
+
+            localStorage.setItem("currentTeamName", teamName);
             
             showTeamPopup = false;
             teamName = "";
@@ -362,7 +393,7 @@
                     {#if currentTeamId > 0}
                         <div class="status-badge team">
                             <span class="pulse-dot"></span>
-                            <span>Team #{currentTeamId} aktiv</span>
+                            <span>{currentTeamName ? currentTeamName : `Team #${currentTeamId}`} aktiv</span>
                         </div>
                     {:else}
                         <div class="status-badge private">
@@ -384,7 +415,7 @@
                 <div class="header-title-wrapper">
                     <h1>Projekt Board</h1>
                     <span class="view-badge {currentTeamId > 0 ? 'team' : 'private'}">
-                        {currentTeamId > 0 ? `Team #${currentTeamId}` : 'Privat'}
+                       {currentTeamId > 0 ? (currentTeamName || `Team #${currentTeamId}`) : 'Privat'}
                     </span>
                 </div>
                 <p class="board-subtitle">
@@ -495,7 +526,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     </div>
                     <div class="profile-text">
-                        <span class="profile-name">Workspace User</span>
+                        <span class="profile-name">{currentUsername}</span>
                         <span class="profile-status">Online</span>
                     </div>
                 </div>

@@ -27,6 +27,8 @@
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("username", Username);
+
                 isAuthenticated = true;
                 loginState = true;
                 goto("/dashboard");
