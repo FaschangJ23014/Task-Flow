@@ -100,7 +100,7 @@ public class TeamService
     }
 
     public string? LeaveTeam(int userId)
-{
+    {
     var teamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == userId);
     if (teamMember == null) return null;
 
@@ -118,7 +118,7 @@ public class TeamService
     string newToken = authService.CreateToken(user);
 
     return newToken;
-}
+   }
 
 public bool RemoveMemberFromTeam(int adminUserId, int targetUserId, int teamId)
 {

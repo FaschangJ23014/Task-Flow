@@ -13,6 +13,10 @@
     let showSettingsPopup: boolean = $state(false);
     let showCreateTaskPopup: boolean = $state(false); 
     
+    // Task Lösch-Modal State
+    let showDeleteModal: boolean = $state(false);
+    let taskToDeleteId: number | null = $state(null);
+    
     // Felder für neuen Task
     let newTaskTitle: string = $state("");
     let newTaskDesc: string = $state("");
@@ -28,50 +32,67 @@
     let teamName: string = $state("");
     let teamPassword: string = $state("");
 
+    // Toast State
+    let toastMessage: string = $state("");
+    let toastType: 'success' | 'error' = $state('success');
+    let toastVisible: boolean = $state(false);
+    let toastTimer: any = null;
+
+    // Weitere Inline Bestätigungen (Kicken / Verlassen bleiben wie gehabt, falls gewünscht)
+    let kickingMemberId: number | null = $state(null);
+    let confirmingLeave: boolean = $state(false);
+
     let teamMembers: { id: number; username: string; isAdmin: boolean }[] = $state([]);
     let isCurrentuserAdmin: boolean = $state(false);
     let currentUserId: number = $state(0);
 
-     interface Task {
+    interface Task {
         id: number;
         title: string;
         description: string;
         status: 'Todo' | 'in-progress' | 'done';
     }
 
+    function showToast(message: string, type: 'success' | 'error' = 'success') {
+        toastMessage = message;
+        toastType = type;
+        toastVisible = true;
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toastVisible = false; }, 3500);
+    }
 
     async function handleChangeUsername() {
-    if (!newUsername.trim()) {
-        alert("Bitte gib einen neuen Benutzernamen ein.");
-        return;
+        if (!newUsername.trim()) {
+            showToast("Bitte gib einen neuen Benutzernamen ein.", 'error');
+            return;
+        }
+        try {
+            const message = await changeUsername(newUsername);
+            showToast(message, 'success');
+            newUsername = "";
+            showSettingsPopup = false;
+        } catch (err) {
+            console.error(err);
+            showToast("Fehler beim Ändern des Benutzernamens.", 'error');
+        }
     }
-    try {
-        const message = await changeUsername(newUsername);
-        alert(message); // Zeigt die Erfolgsmeldung vom Backend
-        newUsername = "";
-        showSettingsPopup = false;
-    } catch (err) {
-        console.error(err);
-        alert("Fehler beim Ändern des Benutzernamens.");
-    }
-}
 
-async function handleChangePassword() {
-    if (!oldPassword || !newPassword) {
-        alert("Bitte fülle alle Passwort-Felder aus.");
-        return;
+    async function handleChangePassword() {
+        if (!oldPassword || !newPassword) {
+            showToast("Bitte fülle alle Passwort-Felder aus.", 'error');
+            return;
+        }
+        try {
+            const message = await changePassword(oldPassword, newPassword);
+            showToast(message, 'success');
+            oldPassword = "";
+            newPassword = "";
+            showSettingsPopup = false;
+        } catch (err) {
+            console.error(err);
+            showToast("Fehler beim Ändern des Passworts.", 'error');
+        }
     }
-    try {
-        const message = await changePassword(oldPassword, newPassword);
-        alert(message); // Zeigt die Erfolgsmeldung vom Backend
-        oldPassword = "";
-        newPassword = "";
-        showSettingsPopup = false;
-    } catch (err) {
-        console.error(err);
-        alert("Fehler beim Ändern des Passworts (Altes Passwort korrekt?).");
-    }
-}
 
     async function loadTasks() {
         try {
@@ -86,31 +107,28 @@ async function handleChangePassword() {
     }
 
     async function handleLeaveTeam() {
-        if (!confirm("Willst du dieses Team wirklich verlassen?")) return;
-
         try {
             const success = await leaveTeam();
             if (success.token) {
                 localStorage.setItem("token", success.token);
             }
-
             currentTeamId = 0;
-            alert(success.message);
-
-            window.location.reload();
+            showToast(success.message || "Team verlassen", 'success');
+            setTimeout(() => window.location.reload(), 1000);
         } catch (err: any) {
             console.error(err);
-            alert("Netzwerkfehler beim Verlassen des Teams.");
+            showToast("Netzwerkfehler beim Verlassen des Teams.", 'error');
         }
     }
 
     async function handleKick(userIdToKick: number) {
-        if (!confirm("Willst du dieses Mitglied wirklich aus dem Team werfen?")) return;
         try {
             await kickTeamMember(currentTeamId, userIdToKick); 
+            showToast("Mitglied erfolgreich gekickt.", 'success');
+            kickingMemberId = null;
             await loadTeamMembersList();
         } catch (err: any) {
-            alert(err.message || "Fehler beim Kicken.");
+            showToast(err.message || "Fehler beim Kicken.", 'error');
         }
     }
 
@@ -118,11 +136,8 @@ async function handleChangePassword() {
         try {
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
             const payload = JSON.parse(jsonPayload);
-            
             for (const key of Object.keys(payload)) {
                 if (key.toLowerCase().includes('teamid')) {
                     const val = parseInt(payload[key]);
@@ -136,40 +151,30 @@ async function handleChangePassword() {
     }
 
     function getUserIdFromToken(token: string): number {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const payload = JSON.parse(jsonPayload);
-        
-        for (const key of Object.keys(payload)) {
-            if (key.toLowerCase().includes('nameid') || key.toLowerCase() === 'sub' || key.toLowerCase() === 'id') {
-                const val = parseInt(payload[key]);
-                if (!isNaN(val)) return val;
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            const payload = JSON.parse(jsonPayload);
+            for (const key of Object.keys(payload)) {
+                if (key.toLowerCase().includes('nameid') || key.toLowerCase() === 'sub' || key.toLowerCase() === 'id') {
+                    const val = parseInt(payload[key]);
+                    if (!isNaN(val)) return val;
+                }
             }
+            return 0;
+        } catch (e) {
+            return 0;
         }
-        return 0;
-    } catch (e) {
-        return 0;
-    }
     }
 
     async function loadTeamMembersList() {
         if (currentTeamId > 0) {
             try {
                 const members = await getTeamMembers(currentTeamId);
-                console.log("Rohdaten von API (Team Members):", members); // Was liefert C# hier?
-                console.log("Aktuelle User-ID zum Vergleichen:", currentUserId); // Ist das die 20?
-                
                 teamMembers = members;
-
                 const me = members.find((m: any) => m.id === currentUserId || m.Id === currentUserId);
-                console.log("Eigenes Mitglieds-Objekt gefunden:", me); // Steht hier undefined?
-
                 isCurrentuserAdmin = me ? (me.isAdmin ?? me.IsAdmin ?? false) : false;
-                console.log("isCurrentuserAdmin gesetzt auf:", isCurrentuserAdmin); // True oder false?
             } catch (err) {
                 console.error("Fehler beim Laden der Team-Mitglieder:", err);
                 teamMembers = [];
@@ -190,7 +195,6 @@ async function handleChangePassword() {
 
         currentTeamId = getTeamIdFromToken(token);
         currentUserId = getUserIdFromToken(token);
-        console.log("Meine User-ID:", currentUserId);
 
         await loadTasks();
         await loadTeamMembersList();
@@ -204,24 +208,12 @@ async function handleChangePassword() {
             .withAutomaticReconnect()
             .build();
 
-        connection.on("ReceiveTaskUpdate", async (message) => {
-            console.log("Live-Update empfangen:", message);
-            await loadTasks();
-        });
-
-        connection.on("ReceiveUpdateUsername", async (message) => {
-           console.log("Username-Update empfangen:", message);
-           await loadTeamMembersList(); 
-        });
-
-        connection.on("UserJoined", async (message) => {
-            console.log("Neues Mitglied:", message);
-            await loadTeamMembersList();
-        });
+        connection.on("ReceiveTaskUpdate", async () => { await loadTasks(); });
+        connection.on("ReceiveUpdateUsername", async () => { await loadTeamMembersList(); });
+        connection.on("UserJoined", async () => { await loadTeamMembersList(); });
 
         try {
             await connection.start();
-            console.log("SignalR verbunden!");
         } catch (err) {
             console.error("SignalR Verbindungsfehler: ", err);
         }
@@ -229,48 +221,47 @@ async function handleChangePassword() {
 
     async function handleCreateTask() {
         if (!newTaskTitle.trim()) return; 
-        
         try {
             await createKanbanTask(newTaskTitle, newTaskDesc, 'Todo', currentTeamId);
             showCreateTaskPopup = false;
             newTaskTitle = "";
             newTaskDesc = "";
+            showToast("Task erfolgreich erstellt!", 'success');
             await loadTasks();
         } catch (err) {
             console.error(err);
-            alert("Fehler beim Erstellen des Tasks.");
+            showToast("Fehler beim Erstellen des Tasks.", 'error');
         }
     }
 
     async function handleTeamAction(action: 'create' | 'join') {
-    if (!teamName.trim() || !teamPassword.trim()) return;
+        if (!teamName.trim() || !teamPassword.trim()) return;
+        try {
+            let response;
+            if (action === 'create') {
+                response = await registerTeam(teamName, teamPassword);
+                showToast("Team erfolgreich erstellt!", 'success');
+            } else {
+                response = await joinTeam(teamName, teamPassword);
+                showToast("Team erfolgreich beigetreten!", 'success');
+            }
 
-    try {
-        let response;
-        if (action === 'create') {
-            response = await registerTeam(teamName, teamPassword);
-            alert("Team erfolgreich erstellt!");
-        } else if (action === 'join') {
-            response = await joinTeam(teamName, teamPassword);
-            alert("Team erfolgreich beigetreten!");
+            if (response && response.token) {
+                localStorage.setItem("token", response.token);
+                currentTeamId = getTeamIdFromToken(response.token);
+            }
+            
+            showTeamPopup = false;
+            teamName = "";
+            teamPassword = "";
+            await loadTasks();
+            await loadTeamMembersList();
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (err) {
+            console.error(err);
+            showToast(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'}.`, 'error');
         }
-
-        if (response && response.token) {
-            localStorage.setItem("token", response.token);
-            currentTeamId = getTeamIdFromToken(response.token);
-        }
-        
-        showTeamPopup = false;
-        teamName = "";
-        teamPassword = "";
-        await loadTasks();
-        await loadTeamMembersList();
-        window.location.reload(); 
-    } catch (err) {
-        console.error(err);
-        alert(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'} des Teams.`);
     }
-}
 
     async function moveTask(task: Task, newStatus: 'Todo' | 'in-progress' | 'done') {
         try {
@@ -281,19 +272,27 @@ async function handleChangePassword() {
             }
         } catch (err) {
             console.error(err);
-            alert("Fehler beim Verschieben des Tasks.");
+            showToast("Fehler beim Verschieben.", 'error');
         }
     }
 
-    async function handleDelete(taskId: number) {
-        if (!confirm("Willst du diesen Task wirklich löschen?")) return;
+    function confirmDelete(taskId: number) {
+        taskToDeleteId = taskId;
+        showDeleteModal = true;
+    }
 
+    async function executeDelete() {
+        if (taskToDeleteId === null) return;
         try {
-            await deleteKanbanTask(taskId);
-            tasks = tasks.filter(t => t.id !== taskId);
+            await deleteKanbanTask(taskToDeleteId);
+            tasks = tasks.filter(t => t.id !== taskToDeleteId);
+            showToast("Task erfolgreich gelöscht.", 'success');
         } catch (error) {
             console.error(error);
-            alert("Fehler beim Löschen des Tasks");
+            showToast("Fehler beim Löschen des Tasks.", 'error');
+        } finally {
+            showDeleteModal = false;
+            taskToDeleteId = null;
         }
     }
 
@@ -313,6 +312,14 @@ async function handleChangePassword() {
         Lade Dashboard...
     </div>
 {:else}
+
+    {#if toastVisible}
+        <div class="toast-notification {toastType}">
+            <span class="toast-icon">{toastType === 'success' ? '✅' : '⚠️'}</span>
+            <span class="toast-text">{toastMessage}</span>
+        </div>
+    {/if}
+
     <div class="dashboard-layout">
         
         <!-- 1. LINKE SIDEBAR -->
@@ -376,7 +383,7 @@ async function handleChangePassword() {
                                 <p>{task.description}</p>
                             </div>
                             <div class="task-actions">
-                                <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
                                     <span class="action-icon">X</span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Verschieben nach In Progress">
@@ -401,7 +408,7 @@ async function handleChangePassword() {
                             </div>
                             <div class="task-actions">
                                 <div class="task-actions-left">
-                                    <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                    <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
                                         <span class="action-icon">X</span>
                                     </button>
                                     <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'Todo')} title="Zurück zu Todo">
@@ -429,7 +436,7 @@ async function handleChangePassword() {
                                 <p>{task.description}</p>
                             </div>
                             <div class="task-actions">
-                                <button type="button" class="btn-delete" onclick={() => handleDelete(task.id)} title="Task löschen">
+                                <button type="button" class="btn-delete" onclick={() => confirmDelete(task.id)} title="Task löschen">
                                     <span class="action-icon">X</span>
                                 </button>
                                 <button type="button" class="btn-arrow" onclick={() => moveTask(task, 'in-progress')} title="Zurück in Bearbeitung">
@@ -493,9 +500,15 @@ async function handleChangePassword() {
                                 <div class="member-avatar">{member.username.charAt(0).toUpperCase()}</div>
                                 <span class="member-name">{member.username} {member.isAdmin ? '(Admin)' : ''}</span>
 
-                                <!--Kick Button wenn Admin-->
                                 {#if isCurrentuserAdmin && member.id !== currentUserId}
-                                  <button type="button" class="btn-kick" onclick={() => handleKick(member.id)}>❌</button>
+                                    {#if kickingMemberId === member.id}
+                                        <div style="display: flex; gap: 0.2rem;">
+                                            <button type="button" class="btn-yes" onclick={() => handleKick(member.id)}>Ja</button>
+                                            <button type="button" class="btn-no" onclick={() => kickingMemberId = null}>X</button>
+                                        </div>
+                                    {:else}
+                                        <button type="button" class="btn-kick" onclick={() => kickingMemberId = member.id} style="background:none; border:none; cursor:pointer;">❌</button>
+                                    {/if}
                                 {/if}
                             </li>
                         {:else}
@@ -503,13 +516,41 @@ async function handleChangePassword() {
                         {/each}
                     </ul>
 
-                    <button type="button" class="btn-leave-team" onclick={handleLeaveTeam}>
-                        Team verlassen
-                    </button>
+                    {#if confirmingLeave}
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button type="button" class="btn-logout" style="flex: 1; font-size: 0.8rem;" onclick={handleLeaveTeam}>Wirklich?</button>
+                            <button type="button" class="btn-close" style="width: auto;" onclick={() => confirmingLeave = false}>X</button>
+                        </div>
+                    {:else}
+                        <button type="button" class="btn-leave-team" onclick={() => confirmingLeave = true}>
+                            Team verlassen
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </aside>
     </div>
+
+    <!-- POPUP: Task Löschen bestätigen -->
+    {#if showDeleteModal}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showDeleteModal = false}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal-content" role="presentation" onclick={(e) => e.stopPropagation()}>
+                <div class="modal-header-modern">
+                    <div class="modal-icon-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);">⚠️</div>
+                    <h3>Task löschen?</h3>
+                </div>
+                <p style="color: #a1a1aa; font-size: 0.9rem; margin: 0;">Möchtest du diesen Task wirklich unwiderruflich löschen?</p>
+                <div class="modal-actions" style="margin-top: 1rem;">
+                    <button type="button" class="btn-close" onclick={() => showDeleteModal = false}>Abbrechen</button>
+                    <button type="button" class="btn-logout" onclick={executeDelete}>Löschen</button>
+                </div>
+            </div>
+        </div>
+    {/if}
 
     <!-- POPUP: Neuen Task erstellen -->
     {#if showCreateTaskPopup}
@@ -684,7 +725,7 @@ async function handleChangePassword() {
     .members-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; max-height: 160px; overflow-y: auto; }
     .member-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(24, 24, 27, 0.6); padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #27272a; }
     .member-avatar { width: 24px; height: 24px; background: #047857; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
-    .member-name { font-size: 0.85rem; color: #e4e4e7; }
+    .member-name { font-size: 0.85rem; color: #e4e4e7; flex: 1; }
     .empty-members { color: #71717a; font-size: 0.8rem; text-align: center; font-style: italic; padding: 0.5rem 0; }
 
     .kanban-main { padding: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; }
@@ -772,7 +813,7 @@ async function handleChangePassword() {
     .btn-delete { 
         background: rgba(239, 68, 68, 0.08); 
         border: 1px solid rgba(239, 68, 68, 0.2); 
-        border-radius: 0.4rem; cursor: pointer; padding: 0.4rem 0.5rem; 
+        border-radius: 0.4rem; cursor: pointer; padding: 0.4rem 0.6rem; 
         display: flex; align-items: center; justify-content: center;
         transition: all 0.2s; 
     }
@@ -816,4 +857,38 @@ async function handleChangePassword() {
     .modal-icon-badge { width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
     .modal-header-modern h3 { margin: 0; font-size: 1.1rem; color: #fff; }
     .modal-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1.25rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        backdrop-filter: blur(8px);
+    }
+    .toast-notification.success {
+        background: rgba(6, 95, 70, 0.9);
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        color: #34d399;
+    }
+    .toast-notification.error {
+        background: rgba(127, 29, 29, 0.9);
+        border: 1px solid rgba(248, 113, 113, 0.4);
+        color: #f87171;
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .btn-yes { background: #059669; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
+    .btn-no { background: #dc2626; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
 </style>
