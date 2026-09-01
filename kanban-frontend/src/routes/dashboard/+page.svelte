@@ -116,8 +116,9 @@
             }
             localStorage.removeItem("currentTeamName");
             currentTeamId = 0;
+            await loadTasks();
             showToast(success.message || "Team verlassen", 'success');
-            setTimeout(() => window.location.reload(), 1000);
+            //setTimeout(() => window.location.reload(), 1000);
         } catch (err: any) {
             console.error(err);
             showToast("Netzwerkfehler beim Verlassen des Teams.", 'error');
@@ -289,7 +290,7 @@
             teamPassword = "";
             await loadTasks();
             await loadTeamMembersList();
-            setTimeout(() => window.location.reload(), 1000);
+            //setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
             console.error(err);
             showToast(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'}.`, 'error');
@@ -843,7 +844,9 @@
 
     .kanban-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; flex: 1; }
     
-    .column { background-color: rgba(9, 9, 11, 0.4); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.85rem; padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem; min-width: 200px; backdrop-filter: blur(8px); }
+    /* HIER GEÄNDERT: min-width von 200px auf 300px erhöht für dickere/breitere Spalten */
+    .column { background-color: rgba(9, 9, 11, 0.4); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.85rem; padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem; min-width: 270px; backdrop-filter: blur(8px); }
+    
     .column h3 { margin: 0; font-size: 0.95rem; color: #a1a1aa; border-bottom: 1px solid rgba(16, 185, 129, 0.15); padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
     .task-count { font-size: 0.75rem; background: #18181b; padding: 0.1rem 0.5rem; border-radius: 1rem; color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 

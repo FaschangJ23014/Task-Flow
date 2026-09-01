@@ -8,8 +8,9 @@
 
     let loginState: boolean = $state(true);
     let registerState: boolean = $state(true);
+    let registerSuccess: boolean = $state(false);
 
-    let isFormValid = $derived(Username.trim() == "" || Password.trim() == "" || Password.length < 8);
+    let isFormValid = $derived(Username.trim() == "" || Password.trim() == "" || Password.length < 8 || Username.length < 3 || Username.length > 20);
 
     async function loginUser(username: string, password: string) {
         try {
@@ -21,6 +22,7 @@
 
             if (!response.ok) {
                 loginState = false;
+                registerSuccess = false;
                 return;
             }
 
@@ -49,16 +51,18 @@
 
             if (!res.ok) {
                 registerState = false; 
+                registerSuccess = false;
                 return;
             }
 
             registerState = true;
             loginState = true;
-            alert("Registrierung erfolgreich! Du kannst dich jetzt einloggen.");
+            registerSuccess = true;
 
         } catch (error) {
             console.error("Error registering:", error);
             registerState = false;
+            registerSuccess = false;
         }
     }
 </script>
@@ -71,13 +75,24 @@
         
         {#if !loginState }
             <div class="error-banner">
-                <span class="error-icon">⚠️</span>
+                <span class="banner-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
                 <span>Anmeldedaten sind falsch. Bitte versuche es erneut.</span>
             </div>
         {:else if !registerState }
             <div class="error-banner">
-                <span class="error-icon">⚠️</span>
+                <span class="banner-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
                 <span>Registrierung fehlgeschlagen. Konto existiert bereits.</span>
+            </div>
+        {:else if registerSuccess}
+            <div class="success-banner">
+                <span class="banner-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </span>
+                <span>Registrierung erfolgreich! Du kannst dich jetzt einloggen.</span>
             </div>
         {/if} 
     
@@ -85,11 +100,21 @@
         <div class="input-group">
             <div class="field">
                 <label for="username-input">Username</label>
-                <input id="username-input" type="text" placeholder="Username" bind:value={Username} oninput={() => {loginState = true; registerState = true;}} />
+                <input id="username-input" type="text" placeholder="Username" bind:value={Username} oninput={() => {loginState = true; registerState = true; registerSuccess = false;}} />
             </div>
             <div class="field">
                 <label for="password-input">Password</label>
-                <input id="password-input" type="password" placeholder="Password" bind:value={Password} oninput={() => {loginState = true; registerState = true;}} />
+                <input id="password-input" type="password" placeholder="Password" bind:value={Password} oninput={() => {loginState = true; registerState = true; registerSuccess = false;}} />
+            </div>
+
+            <!-- NEU: Schicker Info-Kasten für die Regeln -->
+            <div class="info-box">
+                <div class="info-item" class:valid={Username.length >= 3 && Username.length <= 20}>
+                    <span class="dot"></span> Username: 3–20 Zeichen
+                </div>
+                <div class="info-item" class:valid={Password.length >= 8}>
+                    <span class="dot"></span> Passwort: min. 8 Zeichen
+                </div>
             </div>
         </div>
 
@@ -100,7 +125,6 @@
     </div>
 
 <style>
-    /* 1. Das macht den gesamten Bildschirm-Hintergrund außerhalb der Box zum geilen Verlauf */
     :global(html), :global(body) {
         margin: 0;
         padding: 0;
@@ -110,14 +134,12 @@
         background: linear-gradient(135deg, #020604 0%, #061a14 50%, #09090b 100%) !important;
     }
 
-    /* 2. Zentriert die Box perfekt auf dem Bildschirm */
     :global(body) {
         display: flex;
         justify-content: center;
         align-items: center;
     }
 
-    /* 3. Deine Login-Box bleibt exakt so wie sie ist (unverändert) */
     .auth-box {
         width: 100%;
         max-width: 28rem;
@@ -181,6 +203,44 @@
         box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
     }
 
+    /* NEU: Styling für die Info-Box */
+    .info-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        background-color: rgba(9, 9, 11, 0.6);
+        border: 1px solid #27272a;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        color: #71717a;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+
+    .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #52525b;
+        transition: background-color 0.2s ease;
+    }
+
+    /* Wechselt die Farbe zu Grün, wenn die Bedingung erfüllt ist! */
+    .info-item.valid {
+        color: #34d399;
+    }
+
+    .info-item.valid .dot {
+        background-color: #059669;
+        box-shadow: 0 0 6px rgba(5, 150, 105, 0.6);
+    }
+
     .button-group {
         display: flex;
         gap: 0.75rem;
@@ -232,8 +292,25 @@
         animation: shake 0.3s ease-in-out;
     }
 
-    .error-icon {
-        font-size: 16px;
+    .success-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background-color: rgba(5, 150, 105, 0.15);
+        border: 1px solid #059669;
+        color: #34d399;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .banner-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     @keyframes shake {
@@ -242,5 +319,8 @@
         75% { transform: translateX(4px); }
     }
 
-    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
