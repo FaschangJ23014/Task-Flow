@@ -71,6 +71,9 @@
         try {
             const message = await changeUsername(newUsername);
             showToast(message, 'success');
+
+            currentUsername = newUsername;
+            localStorage.setItem("username", newUsername);
             newUsername = "";
             showSettingsPopup = false;
         } catch (err) {
@@ -223,6 +226,7 @@
             currentUsername = savedUsername;
         } else {
             currentUsername = getUsernameFromToken(token);
+            localStorage.setItem("username", currentUsername);
         }
 
         await loadTasks();
@@ -281,6 +285,7 @@
             if (response && response.token) {
                 localStorage.setItem("token", response.token);
                 currentTeamId = getTeamIdFromToken(response.token);
+                currentTeamName = teamName;
             }
 
             localStorage.setItem("currentTeamName", teamName);
