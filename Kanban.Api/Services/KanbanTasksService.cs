@@ -19,7 +19,7 @@ public class KanbanTasksService
 
     public List<Canban> GetKanbanByUser(int id)
     {
-        return _data.KanbanTasks.Where(x => x.UserId == id).ToList();
+        return _data.KanbanTasks.Where(x => x.UserId == id && x.TeamId == null).ToList();
     }
 
     public List<Canban> GetKanbanByTeam(int id)
