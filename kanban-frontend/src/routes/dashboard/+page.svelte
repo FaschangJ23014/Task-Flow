@@ -774,14 +774,41 @@
 {/if}
 
 <style>
-    :global(html), :global(body) { 
-        margin: 0; padding: 0; width: 100vw; height: 100vh; 
-        background: linear-gradient(135deg, #022c22 0%, #064e3b 40%, #09090b 100%) !important; 
-        color: #ffffff; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; 
-    }
-    
-    .loading-screen { background: #09090b; color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    .dashboard-layout { display: grid; grid-template-columns: 260px 1fr 300px; height: 100vh; box-sizing: border-box; }
+    :global(html),
+:global(body) {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: #09090b;
+    color: #ffffff;
+    color-scheme: dark;
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+}
+
+.loading-screen,
+.dashboard-layout {
+    min-height: 100dvh;
+    background: linear-gradient(
+        135deg,
+        #022c22 0%,
+        #064e3b 40%,
+        #09090b 100%
+    );
+}
+
+.loading-screen {
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    box-sizing: border-box;
+}
     
     .sidebar-left, .sidebar-right { 
         background-color: rgba(6, 78, 59, 0.25); 
