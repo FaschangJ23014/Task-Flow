@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
     public IActionResult Register(UserDto dto)
     {
         bool register = authService.Register(dto.Username, dto.Password);
-        if (!register) return BadRequest("Username existiert bereits");
+        if (!register) return BadRequest("Username oder Passwort sind ungültig oder bereits vergeben.");
 
         return Ok("User erfolgreich registriert!");
     }

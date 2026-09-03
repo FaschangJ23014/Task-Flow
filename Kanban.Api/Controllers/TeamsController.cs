@@ -32,8 +32,19 @@ public class TeamsController : ControllerBase
         if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
         int userId = int.Parse(userIdString);
 
-        bool register = teamService.AddTeam(dto.Name, dto.Password, userId);
-        if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits" });
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Password))
+        {
+            return BadRequest(new { message = "Teamname und Passwort dürfen nicht leer sein." });
+        }
+
+        var normalizedName = dto.Name.Trim();
+        if (normalizedName.Length > 15 || dto.Password.Length < 8)
+        {
+            return BadRequest(new { message = "Teamname darf max. 15 Zeichen lang sein und das Passwort muss mindestens 8 Zeichen lang sein." });
+        }
+
+        bool register = teamService.AddTeam(normalizedName, dto.Password, userId);
+        if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits oder die Daten sind ungültig." });
 
         var user = authService.GetUserById(userId);
         if (user == null) return Unauthorized();

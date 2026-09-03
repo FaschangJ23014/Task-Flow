@@ -72,11 +72,16 @@ public class AuthService
 
     public bool Register(string username, string password)
     {
-        if(_data.Users.Any(x => x.Username == username)) return false;
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) return false;
+
+        var normalUsername = username.Trim();
+        if (normalUsername.Length < 3 || normalUsername.Length > 20) return false;
+        if (password.Length < 8) return false;
+        if (_data.Users.Any(x => x.Username == normalUsername)) return false;
 
         var user = new User
         {
-            Username = username
+            Username = normalUsername
         };
 
         user.PasswordHash = HashPassword(user, password);

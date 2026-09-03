@@ -35,12 +35,15 @@ public class TeamService
 
     public bool AddTeam(string name, string password, int userId)
     {
-        if (_data.Teams.Any(x => x.Name == name)) return false;
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password)) return false;
+
+        var normalizedName = name.Trim();
+        if (normalizedName.Length > 15 || password.Length < 8) return false;
+        if (_data.Teams.Any(x => x.Name == normalizedName)) return false;
 
         Team team = new Team
         {
-            Name = name,
-
+            Name = normalizedName,
         };
 
         team.JoinPasswordHash = HashPassword(team, password);
