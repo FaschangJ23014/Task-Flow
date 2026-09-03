@@ -5,6 +5,8 @@
     import * as signalR from "@microsoft/signalr";
     import { version } from '../../../package.json';
 
+    let connection: signalR.HubConnection | null = null;
+
     let isLoading: boolean = $state(true);
     let tasks: Task[] = $state([]);
 
@@ -119,6 +121,12 @@
             }
             localStorage.removeItem("currentTeamName");
             currentTeamId = 0;
+
+            if(connection){
+                await connection.stop();
+                await connection.start();
+            }
+
             await loadTasks();
             showToast(success.message || "Team verlassen", 'success');
             //setTimeout(() => window.location.reload(), 1000);
@@ -233,7 +241,7 @@
         await loadTeamMembersList();
         isLoading = false;
 
-        const connection = new signalR.HubConnectionBuilder()
+        connection = new signalR.HubConnectionBuilder()
             .withUrl("http://localhost:5121/kanbanHub", { 
                 accessTokenFactory: () => localStorage.getItem("token") || "",
                 transport: signalR.HttpTransportType.WebSockets
@@ -244,6 +252,26 @@
         connection.on("ReceiveTaskUpdate", async () => { await loadTasks(); });
         connection.on("ReceiveUpdateUsername", async () => { await loadTeamMembersList(); });
         connection.on("UserJoined", async () => { await loadTeamMembersList(); });
+
+        connection.on("YouWereKicked", async (kickedUserId: number) => {
+            if (kickedUserId === currentUserId) {
+                showToast("Du wurdest aus dem Team geworfen!", 'error');
+                
+                //Für Zukunft: Backend soll direkt neues Token schicken
+                currentTeamId = 0;
+                localStorage.removeItem("currentTeamName");
+                
+                if (connection) {
+                    await connection.stop();
+                    await connection.start();
+                }
+
+                await loadTasks();
+                await loadTeamMembersList();
+            } else {
+                await loadTeamMembersList();
+            }
+        });
 
         try {
             await connection.start();
@@ -293,6 +321,11 @@
             showTeamPopup = false;
             teamName = "";
             teamPassword = "";
+
+            if(connection){
+                await connection.stop();
+                await connection.start();
+            }
             await loadTasks();
             await loadTeamMembersList();
             //setTimeout(() => window.location.reload(), 1000);

@@ -133,7 +133,7 @@ public bool RemoveMemberFromTeam(int adminUserId, int targetUserId, int teamId)
     _data.TeamMembers.Remove(targetMembership);
     _data.SaveChanges();
 
-    _hubContext.Clients.Group("Team_" + teamId).SendAsync("UserJoined", targetUserId);
+    _hubContext.Clients.Group("Team_" + teamId).SendAsync("YouWereKicked", targetUserId);
 
     return true;
 }
