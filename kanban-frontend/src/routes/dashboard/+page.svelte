@@ -30,13 +30,6 @@
     let oldPassword: string = $state("");
     let newUsername: string = $state("");
 
-    // Validierung für Einstellungen
-    let newUsernameValid: boolean = $state(false);
-    let newPasswordValid: boolean = $state(false);
-
-    $: newUsernameValid = newUsername.trim().length > 0 && newUsername.trim().length < 15;
-    $: newPasswordValid = newPassword.length > 8;
-
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
 
@@ -44,14 +37,13 @@
     let teamName: string = $state("");
     let teamPassword: string = $state("");
 
-    // Validierung für Team-Formular
-    let teamNameValid: boolean = $state(false);
-    let teamPasswordValid: boolean = $state(false);
-    let teamFormValid: boolean = $state(false);
+    // --- SAUBERE SVELTE 5 DERIVED STATES (Keine Doppeldeklaration mehr) ---
+    let newUsernameValid = $derived(newUsername.trim().length > 0 && newUsername.trim().length < 15);
+    let newPasswordValid = $derived(newPassword.length > 8);
 
-    $: teamNameValid = teamName.trim().length > 0 && teamName.trim().length < 15;
-    $: teamPasswordValid = teamPassword.length > 8;
-    $: teamFormValid = teamNameValid && teamPasswordValid;
+    let teamNameValid = $derived(teamName.trim().length > 0 && teamName.trim().length < 15);
+    let teamPasswordValid = $derived(teamPassword.length > 8);
+    let teamFormValid = $derived(teamNameValid && teamPasswordValid);
 
     // Toast State
     let toastMessage: string = $state("");
@@ -153,7 +145,6 @@
 
             await loadTasks();
             showToast(success.message || "Team verlassen", 'success');
-            //setTimeout(() => window.location.reload(), 1000);
         } catch (err: any) {
             console.error(err);
             showToast("Netzwerkfehler beim Verlassen des Teams.", 'error');
@@ -281,7 +272,6 @@
             if (kickedUserId === currentUserId) {
                 showToast("Du wurdest aus dem Team geworfen!", 'error');
                 
-                //Für Zukunft: Backend soll direkt neues Token schicken
                 currentTeamId = 0;
                 localStorage.removeItem("currentTeamName");
                 
@@ -352,7 +342,6 @@
             }
             await loadTasks();
             await loadTeamMembersList();
-            //setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
             console.error(err);
             showToast(`Fehler beim ${action === 'create' ? 'Erstellen' : 'Beitreten'}.`, 'error');
@@ -755,10 +744,10 @@
                 </div>
 
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button type="button" class="btn-primary" on:click={() => teamFormValid && handleTeamAction('create')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
+                    <button type="button" class="btn-primary" onclick={() => teamFormValid && handleTeamAction('create')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
                         Team erstellen
                     </button>
-                    <button type="button" class="btn-secondary" on:click={() => teamFormValid && handleTeamAction('join')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
+                    <button type="button" class="btn-secondary" onclick={() => teamFormValid && handleTeamAction('join')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
                         Team beitreten
                     </button>
                     <button type="button" class="btn-close" onclick={() => showTeamPopup = false} style="width: 100%; margin-top: 0.5rem;">
@@ -805,8 +794,8 @@
                 </div>
 
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button type="button" class="btn-secondary" on:click={() => newUsernameValid && handleChangeUsername()} style="width: 100%;" disabled={!newUsernameValid} title={!newUsernameValid ? 'Username muss 1–14 Zeichen lang sein' : ''}>Username ändern</button>
-                    <button type="button" class="btn-secondary" on:click={() => (oldPassword && newPasswordValid) && handleChangePassword()} style="width: 100%;" disabled={!(oldPassword && newPasswordValid)} title={!(oldPassword && newPasswordValid) ? 'Altes Passwort nötig und neues Passwort mindestens 9 Zeichen' : ''}>Passwort ändern</button>
+                    <button type="button" class="btn-secondary" onclick={() => newUsernameValid && handleChangeUsername()} style="width: 100%;" disabled={!newUsernameValid} title={!newUsernameValid ? 'Username muss 1–14 Zeichen lang sein' : ''}>Username ändern</button>
+                    <button type="button" class="btn-secondary" onclick={() => (oldPassword && newPasswordValid) && handleChangePassword()} style="width: 100%;" disabled={!(oldPassword && newPasswordValid)} title={!(oldPassword && newPasswordValid) ? 'Altes Passwort nötig und neues Passwort mindestens 9 Zeichen' : ''}>Passwort ändern</button>
                     <button type="button" class="btn-logout" onclick={logout} style="width: 100%">Ausloggen</button>
                     <button type="button" class="btn-close" onclick={() => showSettingsPopup = false} style="width: 100%; margin-top: 0.5rem;">Schließen</button>
                 </div>
