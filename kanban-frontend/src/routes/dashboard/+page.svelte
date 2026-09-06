@@ -30,12 +30,28 @@
     let oldPassword: string = $state("");
     let newUsername: string = $state("");
 
+    // Validierung für Einstellungen
+    let newUsernameValid: boolean = $state(false);
+    let newPasswordValid: boolean = $state(false);
+
+    $: newUsernameValid = newUsername.trim().length > 0 && newUsername.trim().length < 15;
+    $: newPasswordValid = newPassword.length > 8;
+
     // Aktuelles Team (0 bedeutet privater Task)
     let currentTeamId: number = $state(0); 
 
     // Felder für Team erstellen/beitreten
     let teamName: string = $state("");
     let teamPassword: string = $state("");
+
+    // Validierung für Team-Formular
+    let teamNameValid: boolean = $state(false);
+    let teamPasswordValid: boolean = $state(false);
+    let teamFormValid: boolean = $state(false);
+
+    $: teamNameValid = teamName.trim().length > 0 && teamName.trim().length < 15;
+    $: teamPasswordValid = teamPassword.length > 8;
+    $: teamFormValid = teamNameValid && teamPasswordValid;
 
     // Toast State
     let toastMessage: string = $state("");
@@ -70,6 +86,10 @@
             showToast("Bitte gib einen neuen Benutzernamen ein.", 'error');
             return;
         }
+        if (newUsername.trim().length >= 15) {
+            showToast("Der Username muss weniger als 15 Zeichen lang sein.", 'error');
+            return;
+        }
         try {
             const message = await changeUsername(newUsername);
             showToast(message, 'success');
@@ -87,6 +107,10 @@
     async function handleChangePassword() {
         if (!oldPassword || !newPassword) {
             showToast("Bitte fülle alle Passwort-Felder aus.", 'error');
+            return;
+        }
+        if (newPassword.length <= 8) {
+            showToast("Das neue Passwort muss mindestens 9 Zeichen lang sein.", 'error');
             return;
         }
         try {
@@ -721,11 +745,20 @@
                     <label for="teamPass">Passwort</label>
                     <input id="teamPass" type="password" bind:value={teamPassword} placeholder="Geheimes Passwort..." />
                 </div>
+
+                <div class="info-box">
+                    <strong>Anforderungen</strong>
+                    <ul class="req-list">
+                        <li class="req-item {teamNameValid ? 'valid' : (teamName ? 'invalid' : '')}">Team-Name: 1–14 Zeichen (aktuell {teamName.length})</li>
+                        <li class="req-item {teamPasswordValid ? 'valid' : (teamPassword ? 'invalid' : '')}">Passwort: mindestens 9 Zeichen (aktuell {teamPassword.length})</li>
+                    </ul>
+                </div>
+
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button type="button" class="btn-primary" onclick={() => handleTeamAction('create')} style="width: 100%;">
+                    <button type="button" class="btn-primary" on:click={() => teamFormValid && handleTeamAction('create')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
                         Team erstellen
                     </button>
-                    <button type="button" class="btn-secondary" onclick={() => handleTeamAction('join')} style="width: 100%;">
+                    <button type="button" class="btn-secondary" on:click={() => teamFormValid && handleTeamAction('join')} style="width: 100%;" disabled={!teamFormValid} title={!teamFormValid ? 'Name muss <15 Zeichen und Passwort mindestens 9 Zeichen haben' : ''}>
                         Team beitreten
                     </button>
                     <button type="button" class="btn-close" onclick={() => showTeamPopup = false} style="width: 100%; margin-top: 0.5rem;">
@@ -762,10 +795,19 @@
                     <label for="newPassword">Neues Passwort</label>
                     <input id="newPassword" type="password" bind:value={newPassword} placeholder="Neues Passwort" />
                 </div>
+
+                <div class="info-box">
+                    <strong>Anforderungen</strong>
+                    <ul class="req-list">
+                        <li class="req-item {newUsernameValid ? 'valid' : (newUsername ? 'invalid' : '')}">Username: 1–14 Zeichen</li>
+                        <li class="req-item {newPasswordValid ? 'valid' : (newPassword ? 'invalid' : '')}">Neues Passwort: mindestens 9 Zeichen</li>
+                    </ul>
+                </div>
+
                 <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
-                    <button type="button" class="btn-secondary" onclick={() => handleChangeUsername()} style="width: 100%;">Username ändern</button>
-                    <button type="button" class="btn-secondary" onclick={() => handleChangePassword()} style="width: 100%;">Passwort ändern</button>
-                    <button type="button" class="btn-logout" onclick={logout} style="width: 100%;">Ausloggen</button>
+                    <button type="button" class="btn-secondary" on:click={() => newUsernameValid && handleChangeUsername()} style="width: 100%;" disabled={!newUsernameValid} title={!newUsernameValid ? 'Username muss 1–14 Zeichen lang sein' : ''}>Username ändern</button>
+                    <button type="button" class="btn-secondary" on:click={() => (oldPassword && newPasswordValid) && handleChangePassword()} style="width: 100%;" disabled={!(oldPassword && newPasswordValid)} title={!(oldPassword && newPasswordValid) ? 'Altes Passwort nötig und neues Passwort mindestens 9 Zeichen' : ''}>Passwort ändern</button>
+                    <button type="button" class="btn-logout" onclick={logout} style="width: 100%">Ausloggen</button>
                     <button type="button" class="btn-close" onclick={() => showSettingsPopup = false} style="width: 100%; margin-top: 0.5rem;">Schließen</button>
                 </div>
             </div>
@@ -1035,6 +1077,14 @@
     .warning-badge { background: rgba(239, 68, 68, 0.15) !important; border-color: rgba(239, 68, 68, 0.3) !important; color: #f87171 !important; }
     .modal-header-modern h3 { margin: 0; font-size: 1.1rem; color: #fff; }
     .modal-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+
+    /* Info / Validierungs-Boxen für Popups */
+    .info-box { background: rgba(255,255,255,0.02); border: 1px solid rgba(16,185,129,0.08); padding: 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; color: #a1a1aa; }
+    .info-box strong { display:block; margin-bottom:0.4rem; color:#e6fffa; }
+    .req-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.3rem; }
+    .req-item { display:flex; align-items:center; gap:0.5rem; }
+    .req-item.valid { color: #34d399; }
+    .req-item.invalid { color: #f87171; }
 
     .toast-notification {
         position: fixed;
