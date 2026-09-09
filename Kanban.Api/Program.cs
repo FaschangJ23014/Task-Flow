@@ -11,9 +11,27 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var configuredAllowedOrigins = builder.Configuration["Frontend:AllowedOrigins"]
+    ?? Environment.GetEnvironmentVariable("FRONTEND_ALLOWED_ORIGINS")
+    ?? "http://localhost:5173,http://localhost:3000";
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? "Data Source=kanban.db";
+
 // 1. Datenbank
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseSqlite("Data Source=kanban.db"));
+{
+    if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+       connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase))
+    {
+       options.UseNpgsql(connectionString);
+    }
+    else
+    {
+       options.UseSqlite(connectionString);
+    }
+});
 
 // 2. Services registrieren
 builder.Services.AddScoped<AuthService>();
@@ -84,12 +102,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Trage hier die URL deines Svelte-Frontends ein (Standard bei Vite ist meist 5173)
+        var origins = configuredAllowedOrigins
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        policy.WithOrigins(origins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Wichtig: Erlaubt Credentials, setzt voraus, dass Origins explizit genannt werden (kein "*")
+              .AllowCredentials();
     });
 });
+
+var jwtSecret = builder.Configuration["JWT:SecretKey"]
+    ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
 
 // 4. JWT-Authentifizierung aktivieren 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -98,8 +123,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                builder.Configuration["JWT:SecretKey"] ?? "DiesIstEinStandardKeyDerNurZurTestenDient")),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ValidateIssuer = false,
             ValidateAudience = false
         };
