@@ -3,6 +3,7 @@ using Kanban.Api.Hubs;
 using Kanban.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -33,13 +34,13 @@ public class TeamService
     public bool VerifyPassword(Team team, string hashedPassword, string providedPassword)
         => _hasher.VerifyHashedPassword(team, hashedPassword, providedPassword) == PasswordVerificationResult.Success;
 
-    public bool AddTeam(string name, string password, int userId)
+    public async Task<bool> AddTeam(string name, string password, int userId)
     {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password)) return false;
 
         var normalizedName = name.Trim();
-        if (normalizedName.Length > 15 || password.Length < 8) return false;
-        if (_data.Teams.Any(x => x.Name == normalizedName)) return false;
+        if (normalizedName.Length < 3 || normalizedName.Length > 15 || password.Length < 8) return false;
+        if (_data.Teams.Any(x => x.Name.ToLower() == normalizedName.ToLower())) return false;
 
         Team team = new Team
         {
@@ -49,35 +50,36 @@ public class TeamService
         team.JoinPasswordHash = HashPassword(team, password);
 
         _data.Teams.Add(team);
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
 
         TeamMember creatorMember = new TeamMember
         {
             UserId = userId,
             TeamId = team.Id,
-            IsAdmin = true // <--- HIER WIRD ER ADMIN DER GRUPPE!
+            IsAdmin = true
         };
 
         _data.TeamMembers.Add(creatorMember);
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
         return true;
     }
 
-    public bool JoinTeam(string name, string password, int userId)
+    public async Task<bool> JoinTeam(string name, string password, int userId)
     {
-        var team = _data.Teams.FirstOrDefault(x => x.Name == name);
+        var normalizedName = name.Trim();
+        var team = await _data.Teams.FirstOrDefaultAsync(x => x.Name.ToLower() == normalizedName.ToLower());
         if (team == null) return false;
 
         bool verify = VerifyPassword(team, team.JoinPasswordHash, password);
         if (!verify) return false;
 
-        bool alreadyMember = _data.TeamMembers.Any(tm => tm.UserId == userId && tm.TeamId == team.Id);
+        bool alreadyMember = await _data.TeamMembers.AnyAsync(tm => tm.UserId == userId && tm.TeamId == team.Id);
         if (alreadyMember) return false;
 
-        int memberCount = _data.TeamMembers.Count(tm => tm.TeamId == team.Id);
+        int memberCount = await _data.TeamMembers.CountAsync(tm => tm.TeamId == team.Id);
         if (memberCount >= 10)
         {
-            return false; // Team ist voll!
+            return false;
         }
 
         TeamMember member = new TeamMember
@@ -87,9 +89,9 @@ public class TeamService
         };
 
         _data.TeamMembers.Add(member);
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
 
-        _hubContext.Clients.Group("Team_" + team.Id).SendAsync("UserJoined", userId);
+        await _hubContext.Clients.Group("Team_" + team.Id).SendAsync("UserJoined", userId);
 
         return true;
     }
@@ -102,44 +104,49 @@ public class TeamService
         return team;
     }
 
-    public string? LeaveTeam(int userId)
+public async Task<string?> LeaveTeam(int userId, int? teamId = null)
     {
-    var teamMember = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == userId);
+    var memberships = await _data.TeamMembers
+        .Where(tm => tm.UserId == userId)
+        .ToListAsync();
+
+    if (memberships.Count == 0) return null;
+
+    var teamMember = teamId.HasValue
+        ? memberships.FirstOrDefault(tm => tm.TeamId == teamId.Value)
+        : memberships.Count == 1 ? memberships[0] : null;
+
     if (teamMember == null) return null;
 
-    int teamId = teamMember.TeamId;
+    int leavingTeamId = teamMember.TeamId;
 
     _data.TeamMembers.Remove(teamMember);
-    _data.SaveChanges();
+    await _data.SaveChangesAsync();
 
-    _hubContext.Clients.Group("Team_" + teamId).SendAsync("UserJoined", userId);
+    await _hubContext.Clients.Group("Team_" + leavingTeamId).SendAsync("UserLeft", userId);
 
-    var user = _data.Users.FirstOrDefault(u => u.Id == userId);
+    var user = await _data.Users.FirstOrDefaultAsync(u => u.Id == userId);
     if (user == null) return null;
 
-    // Ein NEUES Token generieren (jetzt ohne TeamId / TeamId = 0)
-    string newToken = authService.CreateToken(user);
+    return authService.CreateToken(user);
+}
 
-    return newToken;
-   }
-
-public bool RemoveMemberFromTeam(int adminUserId, int targetUserId, int teamId)
+public async Task<bool> RemoveMemberFromTeam(int adminUserId, int targetUserId, int teamId)
 {
-    var adminMembership = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == adminUserId && tm.TeamId == teamId && tm.IsAdmin);
-    if (adminMembership == null) return false; 
+    var adminMembership = await _data.TeamMembers.FirstOrDefaultAsync(tm => tm.UserId == adminUserId && tm.TeamId == teamId && tm.IsAdmin);
+    if (adminMembership == null) return false;
 
-    var targetMembership = _data.TeamMembers.FirstOrDefault(tm => tm.UserId == targetUserId && tm.TeamId == teamId);
+    var targetMembership = await _data.TeamMembers.FirstOrDefaultAsync(tm => tm.UserId == targetUserId && tm.TeamId == teamId);
     if (targetMembership == null) return false;
 
     if (adminUserId == targetUserId) return false;
 
     _data.TeamMembers.Remove(targetMembership);
-    _data.SaveChanges();
+    await _data.SaveChangesAsync();
 
-    _hubContext.Clients.Group("Team_" + teamId).SendAsync("YouWereKicked", targetUserId);
+    await _hubContext.Clients.Group("Team_" + teamId).SendAsync("YouWereKicked", targetUserId);
 
     return true;
 }
-
 
 }

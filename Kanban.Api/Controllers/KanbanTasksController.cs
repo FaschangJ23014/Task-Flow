@@ -1,4 +1,5 @@
-﻿using Kanban.Api.DTOs;
+﻿using Kanban.Api.Data;
+using Kanban.Api.DTOs;
 using Kanban.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -12,10 +13,12 @@ namespace Kanban.Api.Controllers;
 public class KanbanTasksController : ControllerBase
 {
     private readonly KanbanTasksService _service;
+    private readonly DataContext _data;
 
-    public KanbanTasksController(KanbanTasksService service)
+    public KanbanTasksController(KanbanTasksService service, DataContext data)
     {
         _service = service;
+        _data = data;
     }
 
     [HttpGet("user")]
@@ -35,11 +38,22 @@ public class KanbanTasksController : ControllerBase
     [HttpGet("team/{id}")]
     public IActionResult TaskByTeamId(int id)
     {
-        return Ok(_service.GetKanbanByTeam(id));
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+
+        int userId = int.Parse(userIdString);
+
+        var isMember = _data.TeamMembers.Any(tm => tm.TeamId == id && tm.UserId == userId);
+        if (!isMember)
+        {
+            return Forbid();
+        }
+
+        return Ok(_service.GetKanbanByTeam(userId, id));
     }
 
     [HttpPost]
-    public IActionResult AddTask(CanbanDto dto)
+    public async Task<IActionResult> AddTask(CanbanDto dto)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
@@ -49,31 +63,36 @@ public class KanbanTasksController : ControllerBase
         }
 
         int userId = int.Parse(userIdString);
-        bool success = _service.AddKanban(dto, userId);
+        bool success = await _service.AddKanban(dto, userId);
+        if (!success)
+        {
+            return Forbid();
+        }
+
         return Ok(success);
     }
 
     [HttpPut("{id}")]
-    public IActionResult UpdateTask(int id, CanbanDto dto)
+    public async Task<IActionResult> UpdateTask(int id, CanbanDto dto)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
         int userId = int.Parse(userIdString);
 
-        bool update = _service.UpdateTask(id, dto, userId);
+        bool update = await _service.UpdateTask(id, dto, userId);
 
         if (update == false) return NotFound("Task konnte nicht gefunden werden oder gehört dir nicht!");
         return Ok(new { message = "Task erfolgreich geändert" });
     }
 
     [HttpDelete("{id}")]
-    public IActionResult DeleteTask(int id)
+    public async Task<IActionResult> DeleteTask(int id)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
         int userId = int.Parse(userIdString);
 
-        bool delete = _service.DeleteTask(id, userId); 
+        bool delete = await _service.DeleteTask(id, userId);
         if (delete == false) return NotFound("Task konnte nicht gefunden werden oder gehört dir nicht!");
 
         return Ok(new { message = "Task erfolgreich gelöscht" });

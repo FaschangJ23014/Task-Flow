@@ -26,7 +26,7 @@ public class TeamsController : ControllerBase
 
     [Authorize]
     [HttpPost("register")] 
-    public IActionResult Register([FromBody] TeamDto dto)
+    public async Task<IActionResult> Register([FromBody] TeamDto dto)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
@@ -38,12 +38,12 @@ public class TeamsController : ControllerBase
         }
 
         var normalizedName = dto.Name.Trim();
-        if (normalizedName.Length > 15 || dto.Password.Length < 8)
+        if (normalizedName.Length < 3 || normalizedName.Length > 15 || dto.Password.Length < 8)
         {
-            return BadRequest(new { message = "Teamname darf max. 15 Zeichen lang sein und das Passwort muss mindestens 8 Zeichen lang sein." });
+           return BadRequest(new { message = "Teamname muss zwischen 3 und 15 Zeichen lang sein und das Passwort muss mindestens 8 Zeichen lang sein." });
         }
 
-        bool register = teamService.AddTeam(normalizedName, dto.Password, userId);
+        bool register = await teamService.AddTeam(normalizedName, dto.Password, userId);
         if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits oder die Daten sind ungültig." });
 
         var user = authService.GetUserById(userId);
@@ -55,7 +55,7 @@ public class TeamsController : ControllerBase
 
     [Authorize]
     [HttpPost("login")]
-    public IActionResult Login([FromBody]TeamDto dto)
+    public async Task<IActionResult> Login([FromBody]TeamDto dto)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdString))
@@ -64,7 +64,7 @@ public class TeamsController : ControllerBase
         }
         int userId = int.Parse(userIdString);
 
-        bool success = teamService.JoinTeam(dto.Name, dto.Password, userId);
+        bool success = await teamService.JoinTeam(dto.Name, dto.Password, userId);
         if (!success)
         {
             return BadRequest(new { message = "Falscher Teamname, falsches Passwort, du bist bereits im Team oder das Team ist voll (max. 10 Mitglieder)!" });
@@ -81,6 +81,17 @@ public class TeamsController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult GetTeamById(int id)
     {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+
+        int userId = int.Parse(userIdString);
+
+        var isMember = _data.TeamMembers.Any(tm => tm.TeamId == id && tm.UserId == userId);
+        if (!isMember)
+        {
+           return Forbid();
+        }
+
         var team = teamService.getTeamById(id);
         if (team == null) return BadRequest(new { message = "Team not found" });
 
@@ -92,51 +103,68 @@ public class TeamsController : ControllerBase
     [HttpGet("members/{teamId}")]
     public IActionResult GetTeamMembers(int teamId)
     {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+
+        int userId = int.Parse(userIdString);
+
+        var isMember = _data.TeamMembers.Any(tm => tm.TeamId == teamId && tm.UserId == userId);
+        if (!isMember)
+        {
+           return Forbid();
+        }
+
         var members = _data.TeamMembers
          .Where(x => x.TeamId == teamId)
          .Select(x => new {
-             id = x.User.Id,      
-             username = x.User.Username, 
-             isAdmin = x.IsAdmin      
+             id = x.User.Id,
+             username = x.User.Username,
+             isAdmin = x.IsAdmin
          })
          .ToList();
 
-    return Ok(members);
+        return Ok(members);
     }
 
     [Authorize]
     [HttpPost("leave")]
-    public IActionResult LeaveTeam()
+    public async Task<IActionResult> LeaveTeam([FromQuery] int? teamId = null)
     {
-    var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
 
-    int userId = int.Parse(userIdString);
-    
-    string? newToken = teamService.LeaveTeam(userId);
+        int userId = int.Parse(userIdString);
 
-    if (newToken == null) 
-    {
-        return BadRequest("Du bist in keinem Team oder ein Fehler ist aufgetreten.");
-    }
+        string? newToken = await teamService.LeaveTeam(userId, teamId);
 
-    return Ok(new { 
-        token = newToken, 
-        message = "Team erfolgreich verlassen." 
-    });
+        if (newToken == null)
+        {
+           return BadRequest("Du bist in keinem Team oder du musst beim Verlassen ein Team angeben, wenn du mehreren Teams angehörst.");
+        }
+
+        return Ok(new {
+           token = newToken,
+           message = "Team erfolgreich verlassen."
+        });
     }
 
     [Authorize]
     [HttpPost("kick/{teamId}/{targetUserId}")]
-    public IActionResult KickMember(int teamId, int targetUserId)
+    public async Task<IActionResult> KickMember(int teamId, int targetUserId)
     {
-    var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
-    int adminUserId = int.Parse(userIdString);
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+        int adminUserId = int.Parse(userIdString);
 
-    bool success = teamService.RemoveMemberFromTeam(adminUserId, targetUserId, teamId);
-    if (!success) return BadRequest(new { message = "Konnte Mitglied nicht kicken (Keine Admin-Rechte oder falsches Team?)." });
+        var isAdminOrMember = _data.TeamMembers.Any(tm => tm.TeamId == teamId && tm.UserId == adminUserId);
+        if (!isAdminOrMember)
+        {
+           return Forbid();
+        }
 
-    return Ok(new { message = "Mitglied erfolgreich gekickt." });
+        bool success = await teamService.RemoveMemberFromTeam(adminUserId, targetUserId, teamId);
+        if (!success) return BadRequest(new { message = "Konnte Mitglied nicht kicken (Keine Admin-Rechte oder falsches Team?)." });
+
+        return Ok(new { message = "Mitglied erfolgreich gekickt." });
     }
 }

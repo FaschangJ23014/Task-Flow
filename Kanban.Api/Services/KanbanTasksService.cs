@@ -3,6 +3,7 @@ using Kanban.Api.DTOs;
 using Kanban.Api.Models;
 using Kanban.Api.Hubs; 
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.Api.Services;
 
@@ -19,17 +20,37 @@ public class KanbanTasksService
 
     public List<Canban> GetKanbanByUser(int id)
     {
-        return _data.KanbanTasks.Where(x => x.UserId == id && x.TeamId == null).ToList();
+        return _data.KanbanTasks
+            .Where(x => x.UserId == id && x.TeamId == null)
+            .AsNoTracking()
+            .ToList();
     }
 
-    public List<Canban> GetKanbanByTeam(int id)
+    public List<Canban> GetKanbanByTeam(int userId, int teamId)
     {
-        return _data.KanbanTasks.Where(x => x.TeamId == id).ToList();
+        var isTeamMember = _data.TeamMembers
+            .Any(tm => tm.TeamId == teamId && tm.UserId == userId);
+
+        if (!isTeamMember)
+        {
+            return new List<Canban>();
+        }
+
+        return _data.KanbanTasks
+            .Where(x => x.TeamId == teamId)
+            .AsNoTracking()
+            .ToList();
     }
 
-    public bool AddKanban(CanbanDto dto, int userId)
+    public async Task<bool> AddKanban(CanbanDto dto, int userId)
     {
         int? resolvedTeamId = (dto.TeamId == 0) ? null : dto.TeamId;
+
+        if (resolvedTeamId.HasValue &&
+            !await _data.TeamMembers.AnyAsync(tm => tm.TeamId == resolvedTeamId.Value && tm.UserId == userId))
+        {
+            return false;
+        }
 
         Canban kanban = new Canban
         {
@@ -41,26 +62,25 @@ public class KanbanTasksService
         };
 
         _data.KanbanTasks.Add(kanban);
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
 
         if (resolvedTeamId.HasValue)
         {
-            _hubContext.Clients.Group("Team_" + resolvedTeamId.Value).SendAsync("ReceiveTaskUpdate", "Neuer Team-Task!");
+            await _hubContext.Clients.Group("Team_" + resolvedTeamId.Value)
+                .SendAsync("ReceiveTaskUpdate", "Neuer Team-Task!");
         }
 
         return true;
     }
 
-    public bool UpdateTask(int id, CanbanDto dto, int userId)
+    public async Task<bool> UpdateTask(int id, CanbanDto dto, int userId)
     {
-        // 1. Task anhand der ID suchen (ohne strikten UserId-Check)
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
+        var task = await _data.KanbanTasks.FirstOrDefaultAsync(x => x.Id == id);
         if (task == null) return false;
 
-        // 2. Prüfen: Entweder ist es mein Task ODER ich bin im selben Team
         bool isOwner = task.UserId == userId;
-        bool isTeamMember = task.TeamId.HasValue && 
-                            _data.TeamMembers.Any(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
+        bool isTeamMember = task.TeamId.HasValue &&
+                            await _data.TeamMembers.AnyAsync(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
 
         if (!isOwner && !isTeamMember) return false;
 
@@ -68,37 +88,37 @@ public class KanbanTasksService
         task.Description = dto.Description;
         task.Status = dto.Status;
 
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
 
         if (task.TeamId.HasValue)
         {
-            _hubContext.Clients.Group("Team_" + task.TeamId.Value).SendAsync("ReceiveTaskUpdate", "Task aktualisiert!");
+            await _hubContext.Clients.Group("Team_" + task.TeamId.Value)
+                .SendAsync("ReceiveTaskUpdate", "Task aktualisiert!");
         }
 
         return true;
     }
 
-    public bool DeleteTask(int id, int userId)
+    public async Task<bool> DeleteTask(int id, int userId)
     {
-        // 1. Task anhand der ID suchen (ohne strikten UserId-Check)
-        var task = _data.KanbanTasks.FirstOrDefault(x => x.Id == id);
+        var task = await _data.KanbanTasks.FirstOrDefaultAsync(x => x.Id == id);
         if (task == null) return false;
 
-        // 2. Prüfen: Entweder ist es mein Task ODER ich bin im selben Team
         bool isOwner = task.UserId == userId;
-        bool isTeamMember = task.TeamId.HasValue && 
-                            _data.TeamMembers.Any(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
+        bool isTeamMember = task.TeamId.HasValue &&
+                            await _data.TeamMembers.AnyAsync(tm => tm.TeamId == task.TeamId.Value && tm.UserId == userId);
 
         if (!isOwner && !isTeamMember) return false;
 
         int? teamId = task.TeamId;
 
         _data.KanbanTasks.Remove(task);
-        _data.SaveChanges();
+        await _data.SaveChangesAsync();
 
         if (teamId.HasValue)
         {
-            _hubContext.Clients.Group("Team_" + teamId.Value).SendAsync("ReceiveTaskUpdate", "Task gelöscht!");
+            await _hubContext.Clients.Group("Team_" + teamId.Value)
+                .SendAsync("ReceiveTaskUpdate", "Task gelöscht!");
         }
         return true;
     }
