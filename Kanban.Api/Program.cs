@@ -3,8 +3,10 @@ using Kanban.Api.Data;
 using Kanban.Api.Hubs;
 using Kanban.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,48 @@ builder.Services.AddSignalR(options =>
 {
     options.KeepAliveInterval = TimeSpan.FromSeconds(10);
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Zu viele Anfragen. Bitte warte kurz und versuche es erneut."
+        }, cancellationToken);
+    };
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var path = httpContext.Request.Path.Value ?? string.Empty;
+        var isAuthRoute = (path.Contains("/login", StringComparison.OrdinalIgnoreCase) ||
+                           path.Contains("/register", StringComparison.OrdinalIgnoreCase)) &&
+                          (path.Contains("/api/auth", StringComparison.OrdinalIgnoreCase) ||
+                           path.Contains("/api/teams", StringComparison.OrdinalIgnoreCase));
+
+        if (!isAuthRoute)
+        {
+            return RateLimitPartition.GetNoLimiter(string.Empty);
+        }
+
+        var clientIp = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientIp,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
 });
 
 // --- CORS POLICY HINZUFÜGEN ---
@@ -77,6 +121,7 @@ if (app.Environment.IsDevelopment())
 
 // CORS MUSS GANZ NACH OBEN
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

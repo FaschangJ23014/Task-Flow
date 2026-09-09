@@ -98,8 +98,11 @@ public class TeamService
 
     public Team? getTeamById(int id)
     {
-        var team = _data.Teams.FirstOrDefault(x =>x.Id == id);
-        if(team == null) return null;
+        var team = _data.Teams
+            .AsNoTracking()
+            .FirstOrDefault(x => x.Id == id);
+
+        if (team == null) return null;
 
         return team;
     }
@@ -107,6 +110,7 @@ public class TeamService
 public async Task<string?> LeaveTeam(int userId, int? teamId = null)
     {
     var memberships = await _data.TeamMembers
+        .AsNoTracking()
         .Where(tm => tm.UserId == userId)
         .ToListAsync();
 
