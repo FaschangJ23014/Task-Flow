@@ -15,13 +15,14 @@ public class TeamsController : ControllerBase
     private readonly TeamService teamService;
     private readonly AuthService authService; //Für die TeamToken
     private readonly DataContext _data;
-   
+    private readonly AuthRateLimitService _rateLimitService;
 
-    public TeamsController(TeamService _teamService, AuthService _authService, DataContext data)
+    public TeamsController(TeamService _teamService, AuthService _authService, DataContext data, AuthRateLimitService rateLimitService)
     {
         teamService = _teamService;
         authService = _authService;
         _data = data;
+        _rateLimitService = rateLimitService;
     }
 
     [Authorize]
@@ -37,13 +38,19 @@ public class TeamsController : ControllerBase
             return BadRequest(new { message = "Teamname und Passwort dürfen nicht leer sein." });
         }
 
-        var normalizedName = dto.Name.Trim();
-        if (normalizedName.Length < 3 || normalizedName.Length > 15 || dto.Password.Length < 8)
+        var teamName = dto?.Name ?? string.Empty;
+        if (!_rateLimitService.TryConsume(HttpContext, teamName))
         {
-           return BadRequest(new { message = "Teamname muss zwischen 3 und 15 Zeichen lang sein und das Passwort muss mindestens 8 Zeichen lang sein." });
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Zu viele Team-Registrierungsversuche. Bitte warte kurz und versuche es erneut." });
         }
 
-        bool register = await teamService.AddTeam(normalizedName, dto.Password, userId);
+        var normalizedName = teamName.Trim();
+        if (normalizedName.Length < 3 || normalizedName.Length > 15 || (dto?.Password ?? string.Empty).Length < 8)
+        {
+            return BadRequest(new { message = "Teamname muss zwischen 3 und 15 Zeichen lang sein und das Passwort muss mindestens 8 Zeichen lang sein." });
+        }
+
+        bool register = await teamService.AddTeam(normalizedName, dto?.Password ?? string.Empty, userId);
         if (!register) return BadRequest(new { message = "Ein Team mit diesem Namen existiert bereits oder die Daten sind ungültig." });
 
         var user = authService.GetUserById(userId);
@@ -64,7 +71,13 @@ public class TeamsController : ControllerBase
         }
         int userId = int.Parse(userIdString);
 
-        bool success = await teamService.JoinTeam(dto.Name, dto.Password, userId);
+        var teamName = dto?.Name ?? string.Empty;
+        if (!_rateLimitService.TryConsume(HttpContext, teamName))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Zu viele Team-Loginversuche. Bitte warte kurz und versuche es erneut." });
+        }
+
+        bool success = await teamService.JoinTeam(teamName, dto?.Password ?? string.Empty, userId);
         if (!success)
         {
             return BadRequest(new { message = "Falscher Teamname, falsches Passwort, du bist bereits im Team oder das Team ist voll (max. 10 Mitglieder)!" });

@@ -11,17 +11,24 @@ namespace Kanban.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService authService;
+    private readonly AuthRateLimitService _rateLimitService;
 
-
-    public AuthController(AuthService _authService)
+    public AuthController(AuthService _authService, AuthRateLimitService rateLimitService)
     {
         authService = _authService;
+        _rateLimitService = rateLimitService;
     }
 
     [HttpPost("register")]
     public IActionResult Register(UserDto dto)
     {
-        bool register = authService.Register(dto.Username, dto.Password);
+        var username = dto?.Username ?? string.Empty;
+        if (!_rateLimitService.TryConsume(HttpContext, username))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Zu viele Registrierungsversuche. Bitte warte kurz und versuche es erneut." });
+        }
+
+        bool register = authService.Register(username, dto?.Password ?? string.Empty);
         if (!register) return BadRequest("Username oder Passwort sind ungültig oder bereits vergeben.");
 
         return Ok("User erfolgreich registriert!");
@@ -30,7 +37,13 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public IActionResult Login(UserDto dto)
     {
-        string? token = authService.Login(dto.Username, dto.Password);
+        var username = dto?.Username ?? string.Empty;
+        if (!_rateLimitService.TryConsume(HttpContext, username))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Zu viele Loginversuche. Bitte warte kurz und versuche es erneut." });
+        }
+
+        string? token = authService.Login(username, dto?.Password ?? string.Empty);
         if (token == null) return BadRequest("Falscher Username oder Passwort.");
 
         return Ok(new { Token = token });

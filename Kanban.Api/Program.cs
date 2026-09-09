@@ -3,6 +3,7 @@ using Kanban.Api.Data;
 using Kanban.Api.Hubs;
 using Kanban.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -18,6 +19,15 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TeamService>();
 builder.Services.AddScoped<KanbanTasksService>();
+builder.Services.AddSingleton<AuthRateLimitService>();
+
+builder.Services.AddHealthChecks();
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    options.RequestBodyLogLimit = 4096;
+    options.ResponseBodyLogLimit = 4096;
+});
 
 // 3. SignalR
 // 3. SignalR mit Ping- und Timeout-Einstellungen
@@ -109,10 +119,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
+app.UseForwardedHeaders();
+app.UseHttpLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -126,6 +153,9 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/healthz");
+app.MapHealthChecks("/ready");
+app.Map("/error", () => Results.Problem("Ein unerwarteter Fehler ist aufgetreten."));
 app.MapControllers();
 app.MapHub<KanbanHub>("/kanbanHub");
 
