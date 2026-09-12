@@ -105,10 +105,32 @@ builder.Services.AddCors(options =>
         var origins = configuredAllowedOrigins
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        policy.WithOrigins(origins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                {
+                    return false;
+                }
+
+                if (origins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return false;
+                }
+
+                var host = uri.Host;
+                var isVercelFrontend = host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
+                    && host.Contains("taskflow-frontend", StringComparison.OrdinalIgnoreCase);
+
+                return isVercelFrontend;
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
