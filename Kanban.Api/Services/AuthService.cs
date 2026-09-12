@@ -44,9 +44,12 @@ public class AuthService
             claims.Add(new Claim("TeamId", teamId.ToString()));
         }
 
+        var jwtSecret = _config["JWT:SecretKey"]
+            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+            ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
+
         // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _config["JWT:SecretKey"] ?? "DasIstEinSuperLangerGeheimerSchruenkelDerMindestensVierundsechzigZeichenLangSeinMussDamitSha512NichtMeckert123456!"));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 

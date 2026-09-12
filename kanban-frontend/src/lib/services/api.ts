@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5121/api"; // Passe hier ggf. deinen Port an
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:5121/api";
 
 function getAuthHeaders() {
     const token = localStorage.getItem("token");

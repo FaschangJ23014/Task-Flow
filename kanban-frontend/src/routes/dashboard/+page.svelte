@@ -5,6 +5,8 @@
     import * as signalR from "@microsoft/signalr";
     import { version } from '../../../package.json';
 
+    const SIGNALR_URL = (import.meta as any).env?.VITE_SIGNALR_URL ?? "http://localhost:5121/kanbanHub";
+
     let connection: signalR.HubConnection | null = null;
 
     let isLoading: boolean = $state(true);
@@ -257,7 +259,7 @@
         isLoading = false;
 
         connection = new signalR.HubConnectionBuilder()
-            .withUrl("http://localhost:5121/kanbanHub", { 
+            .withUrl(SIGNALR_URL, {
                 accessTokenFactory: () => localStorage.getItem("token") || "",
                 transport: signalR.HttpTransportType.WebSockets
             })
@@ -625,8 +627,8 @@
                                 {#if isCurrentuserAdmin && member.id !== currentUserId}
                                     {#if kickingMemberId === member.id}
                                         <div style="display: flex; gap: 0.2rem;">
-                                            <button type="button" class="btn-yes" onclick={() => handleKick(member.id)}>Ja</button>
-                                            <button type="button" class="btn-no" onclick={() => kickingMemberId = null}>
+                                            <button type="button" class="btn-yes" onclick={() => handleKick(member.id)} aria-label="Mitglied kicken">Ja</button>
+                                            <button type="button" class="btn-no" onclick={() => kickingMemberId = null} aria-label="Mitgliedskick abbrechen">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                             </button>
                                         </div>
@@ -644,8 +646,8 @@
 
                     {#if confirmingLeave}
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                            <button type="button" class="btn-logout" style="flex: 1; font-size: 0.8rem;" onclick={handleLeaveTeam}>Wirklich?</button>
-                            <button type="button" class="btn-close" style="width: auto;" onclick={() => confirmingLeave = false}>
+                            <button type="button" class="btn-logout" style="flex: 1; font-size: 0.8rem;" onclick={handleLeaveTeam} aria-label="Team wirklich verlassen">Wirklich?</button>
+                            <button type="button" class="btn-close" style="width: auto;" onclick={() => confirmingLeave = false} aria-label="Team verlassen abbrechen">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
