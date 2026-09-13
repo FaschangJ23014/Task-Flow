@@ -19,6 +19,8 @@
     let showTeamPopup: boolean = $state(false);
     let showSettingsPopup: boolean = $state(false);
     let showCreateTaskPopup: boolean = $state(false); 
+    // Mobile drawer for actions (hamburger)
+    let showMobileDrawer: boolean = $state(false);
     
     // Task Lösch-Modal State
     let showDeleteModal: boolean = $state(false);
@@ -414,6 +416,65 @@
     {/if}
 
     <div class="dashboard-layout">
+
+        <!-- MOBILE OFF-CANVAS DRAWER -->
+        {#if showMobileDrawer}
+            <div class="mobile-drawer-backdrop" role="button" tabindex="0" onclick={() => showMobileDrawer = false}></div>
+            <aside class="mobile-drawer" role="dialog" aria-modal="true">
+                <div class="mobile-drawer-header">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <div class="brand-logo-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
+                        <strong>FlowBoard</strong>
+                    </div>
+                    <button class="btn-close" aria-label="Schließen" onclick={() => showMobileDrawer = false}>✕</button>
+                </div>
+
+                <nav class="mobile-drawer-nav">
+                    <button class="nav-item" onclick={() => { showMobileDrawer = false; }} aria-current="page">Projekt Board</button>
+
+                    <hr />
+
+                    <div class="mobile-drawer-section">
+                        <div class="sidebar-label">Workspace & Teams</div>
+                        <button class="btn-secondary" onclick={() => { showTeamPopup = true; showMobileDrawer = false; }}>Team verwalten</button>
+                        <button class="btn-primary" onclick={() => { showCreateTaskPopup = true; showMobileDrawer = false; }}>Task erstellen</button>
+                    </div>
+
+                    <hr />
+
+                    <div class="mobile-drawer-section">
+                        <div class="sidebar-label">Account</div>
+                        <button class="nav-item" onclick={() => { showSettingsPopup = true; showMobileDrawer = false; }}>Einstellungen</button>
+                        <button class="nav-item" onclick={() => { logout(); showMobileDrawer = false; }}>Ausloggen</button>
+                    </div>
+
+                    <hr />
+
+                    <div class="mobile-drawer-section">
+                        <div class="sidebar-label">Team Info</div>
+                        {#if currentTeamId > 0}
+                            <div class="status-badge team"><span class="pulse-dot"></span><span>{currentTeamName || `Team #${currentTeamId}`}</span></div>
+                            <div style="margin-top:0.6rem;">
+                                {#if teamMembers.length > 0}
+                                    <ul class="members-list">
+                                        {#each teamMembers as m}
+                                            <li class="member-item"><div class="member-avatar">{m.username.charAt(0).toUpperCase()}</div><div class="member-name">{m.username}</div></li>
+                                        {/each}
+                                    </ul>
+                                {:else}
+                                    <div class="empty-members">Keine Mitglieder</div>
+                                {/if}
+                            </div>
+                        {:else}
+                            <div class="status-badge private"><span class="pulse-dot private-dot"></span><span>Privater Workspace</span></div>
+                        {/if}
+                    </div>
+
+                    <div style="margin-top:1rem; font-size:0.85rem; color:#9ca3af; text-align:center;">v {version}</div>
+                </nav>
+            </aside>
+        {/if}
+
         
         <!-- 1. LINKE SIDEBAR -->
         <aside class="sidebar-left">
@@ -467,11 +528,16 @@
         <main class="kanban-main">
             <header class="board-header">
                 <div class="header-title-wrapper">
-                    <h1>Projekt Board</h1>
-                    <span class="view-badge {currentTeamId > 0 ? 'team' : 'private'}">
-                       {currentTeamId > 0 ? (currentTeamName || `Team #${currentTeamId}`) : 'Privat'}
-                    </span>
-                </div>
+                        <!-- Hamburger only visible on mobile -->
+                        <button class="hamburger-btn" aria-label="Menü öffnen" onclick={() => showMobileDrawer = true}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+
+                        <h1>Projekt Board</h1>
+                        <span class="view-badge {currentTeamId > 0 ? 'team' : 'private'}">
+                           {currentTeamId > 0 ? (currentTeamName || `Team #${currentTeamId}`) : 'Privat'}
+                        </span>
+                    </div>
                 <p class="board-subtitle">
                     {currentTeamId > 0 ? 'Synchronisiert mit deinem Team in Echtzeit' : 'Deine persönlichen Aufgaben im Überblick'}
                 </p>
@@ -1167,5 +1233,22 @@
     /* Ensure modals and popups scroll nicely on mobile */
     .modal-backdrop { align-items: flex-end; padding-bottom: 12vh; }
 }
+
+
+    /* Mobile drawer styles */
+    .hamburger-btn { display: none; background: transparent; border: none; color: #d4d4d8; padding: 0.25rem 0.5rem; margin-right: 0.5rem; border-radius: 6px; }
+    .hamburger-btn:hover { background: rgba(255,255,255,0.03); }
+
+    .mobile-drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; }
+    .mobile-drawer { position: fixed; left: 0; top: 0; bottom: 0; width: 86%; max-width: 360px; background: #061715; z-index: 70; padding: 1rem; box-shadow: 8px 0 30px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 0.8rem; overflow-y: auto; }
+    .mobile-drawer-header { display:flex; align-items:center; justify-content:space-between; }
+    .mobile-drawer-nav { display:flex; flex-direction:column; gap:0.6rem; }
+    .mobile-drawer-section { display:flex; flex-direction:column; gap:0.4rem; }
+
+    /* Show hamburger on small screens and ensure sidebars hidden as before */
+    @media (max-width: 768px) {
+        .hamburger-btn { display: inline-flex; align-items:center; justify-content:center; }
+        .sidebar-left, .sidebar-right { display: none !important; }
+    }
 
 </style>
