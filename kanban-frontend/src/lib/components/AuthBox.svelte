@@ -27,14 +27,15 @@
             }
 
             const data = await response.json();
-            if (data.token) {
-                localStorage.setItem("token", data.token);
+            const token = data.token ?? data.Token;
+            if (token) {
+                localStorage.setItem("token", token);
                 localStorage.setItem("username", Username);
 
                 isAuthenticated = true;
                 loginState = true;
                 goto("/dashboard");
-            } 
+            }
         } catch (error) {
             console.error("Error logging in:", error);
             loginState = false;
