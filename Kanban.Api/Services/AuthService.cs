@@ -44,15 +44,16 @@ public class AuthService
             claims.Add(new Claim("TeamId", teamId.ToString()));
         }
 
-        var jwtSecret = _config["JWT:SecretKey"]
-            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+            ?? Environment.GetEnvironmentVariable("JWT__SecretKey")
+            ?? _config["JWT:SecretKey"]
             ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
 
         jwtSecret = jwtSecret.Trim();
-        if (jwtSecret.Length < 64)
+        if (jwtSecret.Length < 64 || jwtSecret.Equals("REPLACE_WITH_STRONG_SECRET_IN_ENV", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                "JWT secret is too short. Use a value with at least 64 characters for HMAC-SHA512 signing.");
+                "JWT secret is too short or still using the placeholder secret. Use a value with at least 64 characters for HMAC-SHA512 signing.");
         }
 
         // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)

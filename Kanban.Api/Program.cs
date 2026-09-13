@@ -134,14 +134,15 @@ builder.Services.AddCors(options =>
     });
 });
 
-var jwtSecret = builder.Configuration["JWT:SecretKey"]
-    ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? Environment.GetEnvironmentVariable("JWT__SecretKey")
+    ?? builder.Configuration["JWT:SecretKey"]
     ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
 
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Trim().Length < 64)
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Trim().Length < 64 || jwtSecret.Trim().Equals("REPLACE_WITH_STRONG_SECRET_IN_ENV", StringComparison.OrdinalIgnoreCase))
 {
     throw new InvalidOperationException(
-        "JWT secret is too short. Use a value with at least 64 characters for HMAC-SHA512 signing.");
+        "JWT secret is too short or still using the placeholder secret. Use a value with at least 64 characters for HMAC-SHA512 signing.");
 }
 
 jwtSecret = jwtSecret.Trim();
