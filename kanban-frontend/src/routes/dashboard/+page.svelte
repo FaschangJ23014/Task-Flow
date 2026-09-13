@@ -1110,4 +1110,62 @@
 
     .btn-yes { background: #059669; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
     .btn-no { background: #dc2626; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+
+
+/* Mobile-first responsive overrides */
+@media (max-width: 768px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+        padding: 0.5rem;
+    }
+
+    /* Hide sidebars on small screens to focus on the board */
+    .sidebar-left, .sidebar-right {
+        display: none !important;
+    }
+
+    .kanban-main {
+        padding: 1rem !important;
+    }
+
+    /* Stack columns into a single column for easier vertical scrolling */
+    .kanban-columns {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    .column {
+        min-width: auto !important;
+        padding: 0.9rem !important;
+        border-radius: 0.65rem !important;
+    }
+
+    .board-header {
+        align-items: flex-start !important;
+        text-align: left !important;
+        padding-bottom: 0.25rem;
+    }
+
+    .header-title-wrapper { justify-content: flex-start !important; gap: 0.5rem; }
+    .board-header h1 { font-size: 1.25rem !important; }
+
+    .task-content h4 { font-size: 0.95rem !important; }
+    .task-content p { font-size: 0.85rem !important; }
+
+    .widget-card { padding: 0.9rem !important; }
+
+    .modal-content { max-width: 95% !important; padding: 1rem !important; }
+
+    .toast-notification { right: 10px !important; left: 10px !important; top: 12px !important; }
+
+    /* Make action buttons easier to tap */
+    .btn-primary, .btn-secondary, .btn-arrow {
+        padding: 0.7rem 0.9rem !important; font-size: 0.95rem !important;
+    }
+
+    /* Ensure modals and popups scroll nicely on mobile */
+    .modal-backdrop { align-items: flex-end; padding-bottom: 12vh; }
+}
+
 </style>

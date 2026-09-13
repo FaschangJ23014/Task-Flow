@@ -126,33 +126,66 @@
     </div>
 
 <style>
-    :global(html), :global(body) {
+    :global(html) {
         margin: 0;
         padding: 0;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
+        -webkit-text-size-adjust: 100%;
+        box-sizing: border-box;
         background: linear-gradient(135deg, #020604 0%, #061a14 50%, #09090b 100%) !important;
     }
 
     :global(body) {
+        margin: 0;
+        padding: 0;
         display: flex;
         justify-content: center;
         align-items: center;
+        min-height: 100vh;
+        box-sizing: border-box;
     }
 
     .auth-box {
-        width: 100%;
+        width: 92vw;
         max-width: 28rem;
         background-color: #18181b;
         border: 1px solid #27272a;
-        padding: 2rem;
+        padding: 1.25rem;
         border-radius: 1rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
     }
+
+    @media (min-width: 640px) {
+        .auth-box {
+            padding: 2rem;
+        }
+    }
+
+    /* Buttons full width on small screens */
+    .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-direction: column;
+    }
+
+    @media (min-width: 640px) {
+        .button-group {
+            flex-direction: row;
+        }
+    }
+
+    .button-group .btn-register,
+    .button-group .btn-login {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border-radius: 0.75rem;
+    }
+
+    .btn-register { background: linear-gradient(90deg,#059669,#10b981); color: white; border: none }
+    .btn-login { background: transparent; border: 1px solid #27272a; color: #fff }
 
     .header-text h2 {
         font-size: 1.5rem;
