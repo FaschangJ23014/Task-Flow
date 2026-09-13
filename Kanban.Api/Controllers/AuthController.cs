@@ -46,7 +46,8 @@ public class AuthController : ControllerBase
         string? token = authService.Login(username, dto?.Password ?? string.Empty);
         if (token == null) return BadRequest("Falscher Username oder Passwort.");
 
-        return Ok(new { token, Token = token });
+        // Return a single canonical property name to avoid JSON serializer collisions
+        return Ok(new { token });
     }
 
     [Authorize]
