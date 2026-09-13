@@ -48,6 +48,13 @@ public class AuthService
             ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
             ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
 
+        jwtSecret = jwtSecret.Trim();
+        if (jwtSecret.Length < 64)
+        {
+            throw new InvalidOperationException(
+                "JWT secret is too short. Use a value with at least 64 characters for HMAC-SHA512 signing.");
+        }
+
         // 2. Secret Key: Der wird aus der Konfiguration gelesen(Render Environment)
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 

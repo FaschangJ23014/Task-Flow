@@ -138,6 +138,14 @@ var jwtSecret = builder.Configuration["JWT:SecretKey"]
     ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
     ?? throw new InvalidOperationException("JWT secret is missing. Set JWT_SECRET_KEY or JWT__SecretKey.");
 
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Trim().Length < 64)
+{
+    throw new InvalidOperationException(
+        "JWT secret is too short. Use a value with at least 64 characters for HMAC-SHA512 signing.");
+}
+
+jwtSecret = jwtSecret.Trim();
+
 // 4. JWT-Authentifizierung aktivieren 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
